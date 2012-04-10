@@ -3,12 +3,12 @@ require "sr"
 module Sr
   module Collector
     def self.reducers
-      @reducers ||= Array.new
+      @reducers ||= Hash.new
     end
 
-    def self.add_reducer red
-      @reducers ||= Array.new
-      @reducers.push red
+    def self.add_reducer(job_id, red)
+      @reducers ||= Hash.new
+      @reducers[job_id] = red
     end
 
     class Reducer
@@ -16,13 +16,13 @@ module Sr
       attr_accessor :combine_block
       attr_accessor :n, :val
 
-      def initialize &combine_block
+      def initialize(job_id, &combine_block)
         @workers = Array.new
         if combine_block.arity != 3
           raise ArgumentError "combine_block must have an arity of 3:"+
             " block(results, n, val)"
         end
-        Collector::add_reducer self
+        Collector::add_reducer(job_id, self)
       end
 
       def add_worker worker

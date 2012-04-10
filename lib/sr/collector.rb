@@ -22,6 +22,7 @@ module Sr
           raise ArgumentError "combine_block must have an arity of 3:"+
             " block(results, n, val)"
         end
+        Collector::add_reducer self
       end
 
       def add_worker worker

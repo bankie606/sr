@@ -5,12 +5,12 @@ require "timeout"
 module Sr
   module Worker
     def self.execers
-      @execers ||= Array.new
+      @execers ||= Hash.new
     end
 
-    def self.add_execer exc
-      @execers ||= Array.new
-      @execers.push exc
+    def self.add_execer(job_id, exc)
+      @execers ||= Hash.new
+      @execers[job_id] = exc
     end
 
     class Execer
@@ -23,16 +23,16 @@ module Sr
       attr_accessor :weighted_accuracy_score, :target_accuracy_score
       attr_accessor :timeout
 
-      def initialize timeout, target_accuracy
+      def initialize(job_id, timeout, target_accuracy)
         @compute_methods = Hash.new
         @num_datum = @num_killed = 0
         @weighted_accuracy_score = 0.0
         @target_accuracy_score = target_accuracy
         @timeout = timeout
-        Worker::add_execer self
+        Worker::add_execer(job_id, self)
       end
 
-      def add_compute_method accuracy, &block
+      def add_compute_method(accuracy, &block)
         if block.arity < 1 || block.arity > 2
           raise ArgumentError "block must have arity of 1 or 2"
         end
@@ -43,7 +43,7 @@ module Sr
       # This function chooses the compute method to use and tries to
       # execute it within @timeout time.
       # Updates accuracy metrics.
-      def compute datum
+      def compute(datum)
         acc = choose_accuracy
         block = @compute_methods[acc]
         result = nil

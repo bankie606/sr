@@ -13,7 +13,7 @@ module Sr
       end
     end
 
-    def self.start_server port
+    def self.start_server(port)
       @collector_port = port # save this for later
       Server.run! :port => port
       # TODO: contact master and tell it a new collector is up

@@ -25,7 +25,7 @@ module Sr
         Collector::add_reducer(job_id, self)
       end
 
-      def add_worker worker
+      def add_worker(worker)
         @workers.push worker
       end
 
@@ -39,7 +39,7 @@ module Sr
       # This method should return a hash with the
       # attributes :n and :val representing the new
       # state of these instance variables
-      def merge_results_from_worker results
+      def merge_results_from_worker(results)
         new_props = @combine_block.call(results, @n, @val)
         @n = new_props[:n]
         @val = new_props[:val]

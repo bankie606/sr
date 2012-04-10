@@ -3,13 +3,13 @@ require "sr"
 module Sr
   module Fetcher
     def self.spouts
-      @spouts ||= Array.new
+      @spouts ||= Hash.new
       @spouts
     end
 
-    def self.add_sprout sprout
-      @sprouts ||= Array.new
-      @sprouts.push sprout
+    def self.add_sprout(job_id, sprout)
+      @sprouts ||= Hash.new
+      @sprouts[job_id] = sprout
     end
 
     class Spout
@@ -18,11 +18,11 @@ module Sr
       # spout takes a block. The block can have arity zero or one
       # If the block has arity one, it is passed the sequence number
       # of the number of fetches
-      def initialize &block
+      def initialize(job_id, &block)
         @fetch_block = block
         @seq_number = 0
         # keep track of ourselves
-        Fetcher::add_sprout self
+        Fetcher::add_sprout(job_id self)
       end
 
       def fetch

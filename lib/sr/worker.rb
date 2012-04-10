@@ -13,7 +13,7 @@ module Sr
       @execers.push exc
     end
 
-    class Execers
+    class Execer
       # A hash from an accuracy metric to a proc
       # higher accuracy metric => higher fidelity computation
       attr_accessor :compute_methods

@@ -22,7 +22,7 @@ module Sr
         @fetch_block = block
         @seq_number = 0
         # keep track of ourselves
-        Fetcher::add_sprout(job_id self)
+        Fetcher::add_sprout(job_id, self)
       end
 
       def fetch

@@ -13,6 +13,16 @@ module Sr
       @execers[job_id] = exc
     end
 
+    def self.remove_execer(job_id)
+      @execers ||= Hash.new
+      # return whether or not the job was successfully killed
+      if @execers.remove(job_id).nil?
+        return false
+      else
+        return true
+      end
+    end
+
     class Execer
       # A hash from an accuracy metric to a proc
       # higher accuracy metric => higher fidelity computation

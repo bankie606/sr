@@ -12,6 +12,17 @@ module Sr
       @sprouts[job_id] = sprout
     end
 
+    def self.remove_spout(job_id)
+      @sprouts ||= Hash.new
+      # return whether or not the job was successfully killed
+      if @sprouts.remove(job_id).nil?
+        return false
+      else
+        return true
+      end
+    end
+
+
     class Spout
       attr_accessor :fetch_block, :seq_number
 

@@ -33,12 +33,19 @@ module Sr
       attr_accessor :weighted_accuracy_score, :target_accuracy_score
       attr_accessor :timeout
 
-      def initialize(job_id, timeout, target_accuracy)
+      DEFAULT_TIMEOUT = 1.0
+      DEFAULT_TARGET_ACCURACY = 0.8
+
+      def initialize(job_id, &init_block)
         @compute_methods = Hash.new
         @num_datum = @num_killed = 0
         @weighted_accuracy_score = 0.0
-        @target_accuracy_score = target_accuracy
-        @timeout = timeout
+        @target_accuracy_score = DEFAULT_TARGET_ACCURACY
+        @timeout = DEFAULT_TIMEOUT
+
+        # run init block
+        yield
+
         Worker::add_execer(job_id, self)
       end
 

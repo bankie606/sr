@@ -11,6 +11,16 @@ module Sr
       @reducers[job_id] = red
     end
 
+    def self.remove_reducer(job_id)
+      @reducers ||= Hash.new
+      # return whether or not the job was successfully killed
+      if @reducers.remove(job_id).nil?
+        return false
+      else
+        return true
+      end
+    end
+
     class Reducer
       attr_accessor :workers
       attr_accessor :combine_block

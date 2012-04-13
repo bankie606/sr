@@ -46,14 +46,21 @@ module Sr
       # This is essentially weighted round robin scheduling
       def get_node_for_task
         # get the least burdened nodes
-        least_worked = @task_counts[@task_counts.keys.min]
+        least_burdened_job_count = @task_counts.keys.min
+        least_worked = @task_counts[least_burdened_job_count]
         # choose one of them
         node = least_worked.shift
+
         # restore the list
-        @task_counts[@task_counts.keys.min] = least_worked
-        # up the chosen node's burden count
-        @task_counts[@task_counts.keys.min + 1] =
-          @task_counts[@task_counts.keys.min + 1] << node
+        if least_worked.length > 0
+          @task_counts[least_burdened_job_count] = least_worked
+        else # or delete it if there are no nodes with this count left
+          @task_counts.delete(least_burdened_job_count)
+        end
+
+        # increment the chosen node's burden count
+        @task_counts[least_burdened_job_count + 1] =
+          @task_counts[least_burdened_job_count + 1] << node
 
         node
       end

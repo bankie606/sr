@@ -5,7 +5,6 @@ require "sinatra/base"
 
 module Sr
   module Collector
-    attr_accessor :collector_port
 
     class Server < Sinatra::Base
       GET "/#{Sr::MessageTypes::NEW_JOB}" do
@@ -16,7 +15,7 @@ module Sr
 
       GET "/#{Sr::MessageTypes::KILL_JOB}" do
         # remove reducer from the pool of reducers in this node
-        result = Collector::remove_reducers(params[:job_id].to_i)
+        result = Collector::remove_reducer(params[:job_id].to_i)
         { :success => result }.to_json
       end
 
@@ -28,9 +27,8 @@ module Sr
       end
     end
 
-    def self.start_server(port)
-      @collector_port = port # save this for later
-      Server.run! :port => port
+    def self.start_server
+      Server.run! :port => Sr::node.collector_port
       # contact master and tell it a new collector is up
       Sr::Util.send_message(Sr::node.master, Sr::MessageTypes::COLLECTOR_CREATED,
                             { :ipaddr => Sr::node.ipaddr,

@@ -8,19 +8,19 @@ module Sr
 
     class Server < Sinatra::Base
       GET "/#{Sr::MessageTypes::NEW_JOB}" do
-        # create reducer and add it to the pool of reducers in this node
+        # create spout and add it to the pool of spouts in this node
         Spout.new(params[:job_id].to_i, eval(params[:fetch_block]))
         { :success => true }.to_json
       end
 
       GET "/#{Sr::MessageTypes::KILL_JOB}" do
-        # remove reducer from the pool of reducers in this node
+        # remove spout from the pool of spouts in this node
         result = Fetcher::remove_spout(params[:job_id].to_i)
         { :success => result }.to_json
       end
 
       GET "/#{Sr::MessageTypes::FETCH}" do
-        # get result of computation as understood by this reducer
+        # fetch next datum
         spout = Fetcher::spouts[params[:job_id].to_i]
         result = spout.nil? ? nil : spout.fetch
         { :success => spout.nil?, :result => result }.to_json
@@ -29,7 +29,7 @@ module Sr
 
     def self.start_server
       Server.run! :port => Sr::node.fetcher_port
-      # contact master and tell it a new collector is up
+      # contact master and tell it a new fetcher is up
       Sr::Util.send_message(Sr::node.master, Sr::MessageTypes::FETCHER_CREATED,
                             { :ipaddr => Sr::node.ipaddr,
                               :port => Sr::node.fetcher_port })

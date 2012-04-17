@@ -1,0 +1,43 @@
+#!/usr/bin/env ruby
+
+$:.unshift File.join(File.dirname(__FILE__), "..", "lib")
+
+require "sr"
+require "trollop"
+
+opts = Trollop::options do
+  opt :port, "Fetcher runs on port, worker on port + 1, collector on port + 2",
+    :type => :int
+  opt :master, "IP or hostname of master node", :type => String
+  opt :master_port, "Port master runs on", :type => :int
+end
+Trollop::die :port, "Must be specified" if opts[:port].nil? || opts[:port] < 1024
+Trollop::die :master, "Must be specified" if opts[:master].nil?
+Trollop::die :master_port, "Must be specified" if opts[:master_port].nil? || opts[:master_port] < 1024
+
+node = Sr::Node.new
+node.ipaddr = Sr::Util.local_ip
+node.fetcher_port = opts[:port]
+node.worker_port = opts[:port] + 1
+node.collector_port = opts[:port] + 2
+node.master_loc = opts[:master]
+node.master_port = opts[:master_port]
+Sr::node = node
+
+# start the servers
+server_pids = Array.new
+server_pids << fork { Sr::Fetcher.start_server }
+server_pids << fork { Sr::Worker.start_server }
+server_pids << fork { Sr::Collector.start_server }
+
+trap("SIGINT") do
+  server_pids.each do |pid|
+    Process.kill("SIGINT", pid)
+  end
+  Process.kill("SIGKILL", 0) # kill current wrapper
+end
+
+while true
+  sleep 0.5
+end
+

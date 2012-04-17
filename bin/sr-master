@@ -1,0 +1,23 @@
+#!/usr/bin/env ruby
+
+$:.unshift File.join(File.dirname(__FILE__), "..", "lib")
+
+require "sr"
+require "trollop"
+
+opts = Trollop::options do
+  opt :port, "Port master server runs on", :type => :int
+end
+Trollop::die :port, "Must be specified" if opts[:port].nil? || opts[:port] < 1024
+
+node = Sr::Node.new
+node.master_loc = node.ipaddr = Sr::Util.local_ip
+node.master_port = opts[:port]
+Sr::node = node
+
+# create the jobtracker
+Sr::Master::Jobtracker.new
+
+# start the server
+Sr::Master.start_server
+

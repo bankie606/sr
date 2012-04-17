@@ -2,10 +2,19 @@ require "sr"
 
 module Sr
   module Master
+    def self.jobtracker
+      @jobtracker
+    end
+
+    def self.jobtracker=(jobtracker)
+      @jobtracker = jobtracker
+    end
+
     class Jobtracker
       attr_accessor :jobs
       attr_accessor :job_fetcher_map, :job_worker_map, :job_collector_map
       attr_accessor :nodes # list of nodes in the cluster
+      attr_accessor :partial_nodes # list of partially initialized nodes
       attr_accessor :task_counts # used for assigning tasks in a job
 
       def initialize
@@ -16,7 +25,22 @@ module Sr
         @job_collector_map = Hash.new { |h,k| Array.new }
         # scheudling tools
         @nodes = Array.new
+        @partial_nodes = Hash.new
         @task_counts = Hash.new { |h,k| Array.new }
+
+        Master::jobtracker = self
+      end
+
+      def add_partial_node(uuid, ipaddr, type, port)
+        partial_node = @partial_nodes[uuid] || Node.new
+        partial_node.ipaddr = ipaddr
+        partial_node.send(type, port)
+        if partial_node.complete?
+          add_node(node)
+          @partial_nodes.delete(uuid)
+        else
+          @partial_nodes[uuid] = partial_node
+        end
       end
 
       def add_node node

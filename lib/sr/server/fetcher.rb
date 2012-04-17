@@ -7,19 +7,19 @@ module Sr
   module Fetcher
 
     class Server < Sinatra::Base
-      GET "/#{Sr::MessageTypes::NEW_JOB}" do
+      get "/#{Sr::MessageTypes::NEW_JOB}" do
         # create spout and add it to the pool of spouts in this node
         Spout.new(params[:job_id].to_i, eval(params[:fetch_block]))
         { :success => true }.to_json
       end
 
-      GET "/#{Sr::MessageTypes::KILL_JOB}" do
+      get "/#{Sr::MessageTypes::KILL_JOB}" do
         # remove spout from the pool of spouts in this node
         result = Fetcher::remove_spout(params[:job_id].to_i)
         { :success => result }.to_json
       end
 
-      GET "/#{Sr::MessageTypes::FETCH}" do
+      get "/#{Sr::MessageTypes::FETCH}" do
         # fetch next datum
         spout = Fetcher::spouts[params[:job_id].to_i]
         result = spout.nil? ? nil : spout.fetch

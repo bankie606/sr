@@ -7,20 +7,20 @@ module Sr
   module Worker
 
     class Server < Sinatra::Base
-      GET "/#{Sr::MessageTypes::NEW_JOB}" do
+      get "/#{Sr::MessageTypes::NEW_JOB}" do
         # create execer and add it to the pool of execers in this node
         # TODO: document what init block is expected to setup
         Execer.new(params[:job_id].to_i, eval(params[:init_block]))
         { :success => true }.to_json
       end
 
-      GET "/#{Sr::MessageTypes::KILL_JOB}" do
+      get "/#{Sr::MessageTypes::KILL_JOB}" do
         # remove reducer from the pool of reducers in this node
         result = Worker::remove_execer(params[:job_id].to_i)
         { :success => result }.to_json
       end
 
-      GET "/#{Sr::MessageTypes::PUSH_RESULTS}" do
+      get "/#{Sr::MessageTypes::PUSH_RESULTS}" do
         # get result of computation as understood by this reducer
         execer = Worker::execers[params[:job_id].to_i]
         # TODO: work out how the execer will store and push its results

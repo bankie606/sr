@@ -13,9 +13,15 @@ module Sr
     attr_accessor :ipaddr
     attr_accessor :fetcher_port, :worker_port, :collector_port
     attr_accessor :master_loc, :master_port
+    attr_accessor :uid
 
     def master
       "#{@master_loc}:#{@master_port}"
+    end
+
+    def complete?
+      !(@uuid.nil? || @ipaddr.nil? || @fetcher_port.nil? ||
+        @worker_port.nil? || @collector_port.nil?)
     end
   end
 end

@@ -32,7 +32,8 @@ module Sr
       # contact master and tell it a new fetcher is up
       Sr::Util.send_message(Sr::node.master, Sr::MessageTypes::FETCHER_CREATED,
                             { :ipaddr => Sr::node.ipaddr,
-                              :port => Sr::node.fetcher_port })
+                              :port => Sr::node.fetcher_port,
+                              :uuid => Sr::UUID })
     end
   end
 end

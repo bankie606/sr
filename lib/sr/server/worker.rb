@@ -36,7 +36,8 @@ module Sr
       # contact master and tell it a new collector is up
       Sr::Util.send_message(Sr::node.master, Sr::MessageTypes::WORKER_CREATED,
                             { :ipaddr => Sr::node.ipaddr,
-                              :port => Sr::node.worker_port })
+                              :port => Sr::node.worker_port,
+                              :uuid => Sr::UUID })
     end
   end
 end

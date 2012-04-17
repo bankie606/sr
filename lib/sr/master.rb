@@ -10,6 +10,11 @@ module Sr
       @jobtracker = jobtracker
     end
 
+    # exceptions
+    class FailedToCreateCollectorException < Exception; end;
+    class FailedToCreateFetcherException < Exception; end;
+    class FailedToCreateWorkerException < Exception; end;
+
     class Jobtracker
       attr_accessor :jobs
       attr_accessor :job_fetcher_map, :job_worker_map, :job_collector_map
@@ -54,14 +59,29 @@ module Sr
         job.num_fetchers.times do |i|
           node = get_node_for_task
           @job_fetcher_map[job] = @job_fetcher_map[job] << node
+          resp = Sr::Util.send_message("#{node.ipaddr}:#{node.fetcher_port}",
+                                       Sr::MessageTypes::NEW_JOB,
+                                       { :job_id => job.id,
+                                         :fetch_block => job.fetcher_block })
+          raise FailedToCreateFetcherException if !resp[:success]
         end
         job.num_workers.times do |i|
           node = get_node_for_task
           @job_worker_map[job] = @job_worker_map[job] << node
+          resp = Sr::Util.send_message("#{node.ipaddr}:#{node.worker_port}",
+                                       Sr::MessageTypes::NEW_JOB,
+                                       { :job_id => job.id,
+                                         :init_block => job.worker_block })
+          raise FailedToCreateWorkerException if !resp[:success]
         end
         job.num_collectors.times do |i|
           node = get_node_for_task
           @job_colector_map[job] = @job_colelctor_map[job] << node
+          resp = Sr::Util.send_message("#{node.ipaddr}:#{node.collector_port}",
+                                       Sr::MessageTypes::NEW_JOB,
+                                       { :job_id => job.id,
+                                         :combine_block => job.collector_block })
+          raise FailedToCreateCollectorException if !resp[:success]
         end
 
       end
@@ -93,12 +113,19 @@ module Sr
     class Job
       attr_accessor :num_fetchers, :num_workers, :num_collectors
       attr_accessor :id
+      attr_accessor :fetcher_block, :worker_block, :collector_block
       @@jobid = 0
 
-      def initialize(nf, nw, nc)
+      # initialize a job with a the number of each node type
+      # and a stringified proc for each node type
+      def initialize(nf, nw, nc, fblock, wblock, cblock)
         @num_fetchers = nf
         @num_workers = nw
         @num_collectors = nc
+
+        @fetcher_block = fblock
+        @worker_block = wblock
+        @collector_block = cblock
 
         # set id
         @id = @@jobid

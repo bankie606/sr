@@ -10,9 +10,9 @@ require "sr/node"
 require "sr/util"
 require "sr/worker"
 
+require "sr/server/message-types"
 require "sr/server/collector"
 require "sr/server/fetcher"
 require "sr/server/master"
-require "sr/server/message-types"
 require "sr/server/worker"
 

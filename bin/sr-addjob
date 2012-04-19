@@ -1,0 +1,35 @@
+#!/usr/bin/env ruby
+
+$:.unshift File.join(File.dirname(__FILE__), "..", "lib")
+
+require "sr"
+require "trollop"
+
+opts = Trollop::options do
+  opt :master, "Address of the master node", :type => String
+  opt :port, "Port master server runs on", :type => :int
+  opt :jobfile, "File that specifies the job", :type => String
+end
+Trollop::die :master, "Must be specified" if opts[:master].nil?
+Trollop::die :port, "Must be specified" if opts[:port].nil? || opts[:port] < 1024
+Trollop::die :jobfile, "Must be specified" if opts[:jobfile].nil?
+
+node = Sr::Node.new
+node.master_loc = opts[:master]
+node.master_port = opts[:port]
+Sr::node = node
+
+# read in jobfile source
+jobfile = File.open(opts[:jobfile]).read
+
+# start the server
+res = Sr::Util.send_message(Sr::node.master, Sr::MessageTypes::CREATE_JOB,
+                            { :jobfile => jobfile })
+
+if res[:success]
+  puts "Job created successfully from #{opts[:jobfile]}"
+else
+  puts "Job creation failed"
+  abort
+end
+

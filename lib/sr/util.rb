@@ -13,8 +13,9 @@ module Sr
       def send_message(destination, message_type, params)
         req_uri = "http://#{destination}/#{message_type}?"
         params.each_pair do |k,v|
-          req_uri += "#{k}=#{v}&"
+          req_uri += "#{k}=#{URI.escape(v, Regexp.new("[^#{URI::PATTERN::UNRESERVED}]"))}&"
         end
+        req_uri = req_uri.gsub(/&$/, "")
         JSON.parse(Net::HTTP.get_response(URI.parse(req_uri)).read_body)
       end
 

@@ -17,11 +17,11 @@ module Sr
         raise NotImplementedError
       end
 
-      def fetcher_fetch_block
+     def fetcher_fetch_block(*args)
         raise NotImplementedError
       end
 
-      def worker_init_block
+      def worker_init_block(obj)
         raise NotImplementedError
       end
     end

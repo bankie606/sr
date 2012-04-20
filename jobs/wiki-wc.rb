@@ -20,7 +20,7 @@ class WikipediaWordCount < Sr::Job::Jobfile
     { :val => val, :n => n + 1 }
   end
 
-  def fetcher_fetch_block
+  def fetcher_fetch_block(*args)
     res = Sr::Util.send_message("localhost:7777", "next_rev/#{seq}", {})
     @seq += 1
     res

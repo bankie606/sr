@@ -10,16 +10,12 @@ module Sr
     class Server < Sinatra::Base
       get "/#{Sr::MessageTypes::CREATE_JOB}" do
         # eval the jobfile and instantiate it
-        jobfile_src = URI::decode(params[:jobfile])
-        job_class = eval(jobfile_src)
-        job_inst = job_class.new
+        job_inst = Sr::Util.eval_jobfile(params[:jobfile])
 
         # create the job
         Sr::Master::Job.new(job_inst.num_fetchers, job_inst.num_collectors,
                             job_inst.num_workers,
-                            proc { job_inst.fetcher_fetch_block },
-                            proc { job_inst.worker_init_block },
-                            proc { job_inst.collector_combine_block })
+                            URI::decode(params[:jobfile]))
         { :success => true }.to_json
       end
 

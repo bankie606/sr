@@ -8,8 +8,11 @@ module Sr
 
     class Server < Sinatra::Base
       get "/#{Sr::MessageTypes::NEW_JOB}" do
+        # eval the jobfile and instantiate it
+        job_inst = Sr::Util.eval_jobfile(params[:jobfile])
+
         # create reducer and add it to the pool of reducers in this node
-        Reducer.new(params[:job_id].to_i, eval(params[:combine_block]))
+        Reducer.new(params[:job_id].to_i, job_inst)
         { :success => true }.to_json
       end
 

@@ -8,9 +8,12 @@ module Sr
 
     class Server < Sinatra::Base
       get "/#{Sr::MessageTypes::NEW_JOB}" do
+        # eval the jobfile and instantiate it
+        job_inst = Sr::Util.eval_jobfile(params[:jobfile])
+
         # create execer and add it to the pool of execers in this node
         # TODO: document what init block is expected to setup
-        Execer.new(params[:job_id].to_i, eval(params[:init_block]))
+        Execer.new(params[:job_id].to_i, job_inst)
         { :success => true }.to_json
       end
 

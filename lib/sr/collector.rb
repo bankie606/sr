@@ -26,12 +26,9 @@ module Sr
       attr_accessor :combine_block
       attr_accessor :n, :val
 
-      def initialize(job_id, &combine_block)
+      def initialize(job_id, job_inst)
+        @job_inst = job_inst
         @workers = Array.new
-        if combine_block.arity != 3
-          raise ArgumentError "combine_block must have an arity of 3:"+
-            " block(results, n, val)"
-        end
         Collector::add_reducer(job_id, self)
       end
 
@@ -50,7 +47,7 @@ module Sr
       # attributes :n and :val representing the new
       # state of these instance variables
       def merge_results_from_worker(results)
-        new_props = @combine_block.call(results, @n, @val)
+        new_props = @job_inst.collector_combine_block(results, @n, @val)
         @n = new_props[:n]
         @val = new_props[:val]
       end

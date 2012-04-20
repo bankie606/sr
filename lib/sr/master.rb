@@ -62,7 +62,7 @@ module Sr
           resp = Sr::Util.send_message("#{node.ipaddr}:#{node.fetcher_port}",
                                        Sr::MessageTypes::NEW_JOB,
                                        { :job_id => job.id,
-                                         :fetch_block => job.fetcher_block })
+                                         :jobfile => job.jobfile })
           raise FailedToCreateFetcherException if !resp[:success]
         end
         job.num_workers.times do |i|
@@ -71,7 +71,7 @@ module Sr
           resp = Sr::Util.send_message("#{node.ipaddr}:#{node.worker_port}",
                                        Sr::MessageTypes::NEW_JOB,
                                        { :job_id => job.id,
-                                         :init_block => job.worker_block })
+                                         :jobfile => job.jobfile })
           raise FailedToCreateWorkerException if !resp[:success]
         end
         job.num_collectors.times do |i|
@@ -80,7 +80,7 @@ module Sr
           resp = Sr::Util.send_message("#{node.ipaddr}:#{node.collector_port}",
                                        Sr::MessageTypes::NEW_JOB,
                                        { :job_id => job.id,
-                                         :combine_block => job.collector_block })
+                                         :jobfile => job.jobfile })
           raise FailedToCreateCollectorException if !resp[:success]
         end
 
@@ -113,19 +113,17 @@ module Sr
     class Job
       attr_accessor :num_fetchers, :num_workers, :num_collectors
       attr_accessor :id
-      attr_accessor :fetcher_block, :worker_block, :collector_block
+      attr_accessor :jobfile
       @@jobid = 0
 
       # initialize a job with a the number of each node type
       # and a stringified proc for each node type
-      def initialize(nf, nw, nc, fblock, wblock, cblock)
+      def initialize(nf, nw, nc, jobfile)
         @num_fetchers = nf
         @num_workers = nw
         @num_collectors = nc
 
-        @fetcher_block = fblock
-        @worker_block = wblock
-        @collector_block = cblock
+        @jobfile = jobfile
 
         # set id
         @id = @@jobid

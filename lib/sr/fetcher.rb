@@ -25,24 +25,20 @@ module Sr
 
     class Spout
       attr_accessor :fetch_block, :seq_number
+      attr_accessor :job_inst
 
       # spout takes a block. The block can have arity zero or one
       # If the block has arity one, it is passed the sequence number
       # of the number of fetches
-      def initialize(job_id, &block)
-        @fetch_block = block
+      def initialize(job_id, job_inst)
+        @job_inst = job_inst
         @seq_number = 0
         # keep track of ourselves
         Fetcher::add_sprout(job_id, self)
       end
 
       def fetch
-        result =
-          if @fetch_block.arity == 0
-            @fetch_block.call
-          elsif @fetch_block.arity == 1
-            @fetch_block.call @seq_number
-          end
+        result = @job_inst.fetcher_fetch_block(@seq_number)
         @seq_number += 1
         result
       end

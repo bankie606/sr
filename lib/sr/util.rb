@@ -31,6 +31,12 @@ module Sr
       ensure
         Socket.do_not_reverse_lookup = orig
       end
+
+      def eval_jobfile(jobfile)
+        jobfile_src = URI::decode(jobfile)
+        job_class = eval(jobfile_src)
+        job_inst = job_class.new
+      end
     end
   end
 end

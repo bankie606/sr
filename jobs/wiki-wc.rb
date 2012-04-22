@@ -26,8 +26,8 @@ class WikipediaWordCount < Sr::Job::Jobfile
     res
   end
 
-  def worker_init_block
-    add_compute_method(1.0) do |datum|
+  def worker_init_block(obj)
+    obj.add_compute_method(1.0) do |datum|
       result = Hash.new(0)
       datum.split(/\s/).each do |word|
         word = word.gsub(/[\.,!\?]/, "")

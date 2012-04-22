@@ -86,7 +86,7 @@ module Sr
           end
           job.num_collectors.times do |i|
             node = get_node_for_task
-            @job_colector_map[job] = @job_colelctor_map[job] << node
+            @job_collector_map[job] = @job_collector_map[job] << node
             resp = Sr::Util.send_message("#{node.ipaddr}:#{node.collector_port}",
                                          Sr::MessageTypes::NEW_JOB,
                                          { :job_id => job.id,

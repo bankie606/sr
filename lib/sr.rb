@@ -3,6 +3,8 @@ module Sr
   UUID = begin `uuidgen`.strip rescue rand(10000) end
 end
 
+require "sr/logging"
+
 require "sr/hash" # monkey patch
 
 require "sr/collector"

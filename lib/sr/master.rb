@@ -1,5 +1,7 @@
 require "sr"
 
+require "thread"
+
 module Sr
   module Master
     def self.jobtracker
@@ -33,18 +35,25 @@ module Sr
         @partial_nodes = Hash.new
         @task_counts = Hash.new { |h,k| Array.new }
 
+        @mutex = Mutex.new
+
         Master::jobtracker = self
       end
 
       def add_partial_node(uuid, ipaddr, type, port)
-        partial_node = @partial_nodes[uuid] || Node.new
-        partial_node.ipaddr = ipaddr
-        partial_node.send(type, port)
-        if partial_node.complete?
-          add_node(node)
-          @partial_nodes.delete(uuid)
-        else
-          @partial_nodes[uuid] = partial_node
+        @mutex.synchronize do
+          Sr.log.info("master adding partial node (#{uuid}) #{type}")
+          partial_node = @partial_nodes[uuid] || Node.new
+          partial_node.ipaddr = ipaddr
+          partial_node.uuid = uuid
+          partial_node.send(type, port)
+          if partial_node.complete?
+            Sr.log.info("master node (#{uuid}) complete")
+            add_node(partial_node)
+            @partial_nodes.delete(uuid)
+          else
+            @partial_nodes[uuid] = partial_node
+          end
         end
       end
 
@@ -54,36 +63,37 @@ module Sr
       end
 
       def add_job_and_start job
-        @jobs.push job
+        @mutex.synchronize do
+          @jobs.push job
 
-        job.num_fetchers.times do |i|
-          node = get_node_for_task
-          @job_fetcher_map[job] = @job_fetcher_map[job] << node
-          resp = Sr::Util.send_message("#{node.ipaddr}:#{node.fetcher_port}",
-                                       Sr::MessageTypes::NEW_JOB,
-                                       { :job_id => job.id,
-                                         :jobfile => job.jobfile })
-          raise FailedToCreateFetcherException if !resp[:success]
+          job.num_fetchers.times do |i|
+            node = get_node_for_task
+            @job_fetcher_map[job] = @job_fetcher_map[job] << node
+            resp = Sr::Util.send_message("#{node.ipaddr}:#{node.fetcher_port}",
+                                         Sr::MessageTypes::NEW_JOB,
+                                         { :job_id => job.id,
+                                           :jobfile => job.jobfile })
+            raise FailedToCreateFetcherException if !resp[:success]
+          end
+          job.num_workers.times do |i|
+            node = get_node_for_task
+            @job_worker_map[job] = @job_worker_map[job] << node
+            resp = Sr::Util.send_message("#{node.ipaddr}:#{node.worker_port}",
+                                         Sr::MessageTypes::NEW_JOB,
+                                         { :job_id => job.id,
+                                           :jobfile => job.jobfile })
+            raise FailedToCreateWorkerException if !resp[:success]
+          end
+          job.num_collectors.times do |i|
+            node = get_node_for_task
+            @job_colector_map[job] = @job_colelctor_map[job] << node
+            resp = Sr::Util.send_message("#{node.ipaddr}:#{node.collector_port}",
+                                         Sr::MessageTypes::NEW_JOB,
+                                         { :job_id => job.id,
+                                           :jobfile => job.jobfile })
+            raise FailedToCreateCollectorException if !resp[:success]
+          end
         end
-        job.num_workers.times do |i|
-          node = get_node_for_task
-          @job_worker_map[job] = @job_worker_map[job] << node
-          resp = Sr::Util.send_message("#{node.ipaddr}:#{node.worker_port}",
-                                       Sr::MessageTypes::NEW_JOB,
-                                       { :job_id => job.id,
-                                         :jobfile => job.jobfile })
-          raise FailedToCreateWorkerException if !resp[:success]
-        end
-        job.num_collectors.times do |i|
-          node = get_node_for_task
-          @job_colector_map[job] = @job_colelctor_map[job] << node
-          resp = Sr::Util.send_message("#{node.ipaddr}:#{node.collector_port}",
-                                       Sr::MessageTypes::NEW_JOB,
-                                       { :job_id => job.id,
-                                         :jobfile => job.jobfile })
-          raise FailedToCreateCollectorException if !resp[:success]
-        end
-
       end
 
       # chose one of the least worked nodes to perform a task

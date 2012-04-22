@@ -13,6 +13,7 @@ module Sr
       def send_message(destination, message_type, params)
         req_uri = "http://#{destination}/#{message_type}?"
         params.each_pair do |k,v|
+          v = v.to_s
           req_uri += "#{k}=#{URI.escape(v, Regexp.new("[^#{URI::PATTERN::UNRESERVED}]"))}&"
         end
         req_uri = req_uri.gsub(/&$/, "")

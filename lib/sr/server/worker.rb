@@ -14,6 +14,7 @@ module Sr
         # create execer and add it to the pool of execers in this node
         # TODO: document what init block is expected to setup
         Execer.new(params[:job_id].to_i, job_inst)
+        Sr.log.info("Worker : NEW_JOB : success")
         { :success => true }.to_json
       end
 
@@ -35,12 +36,12 @@ module Sr
     end
 
     def self.start_server
-      Server.run! :port => Sr::node.worker_port
       # contact master and tell it a new collector is up
       Sr::Util.send_message(Sr::node.master, Sr::MessageTypes::WORKER_CREATED,
                             { :ipaddr => Sr::node.ipaddr,
                               :port => Sr::node.worker_port,
                               :uuid => Sr::UUID })
+      Server.run! :port => Sr::node.worker_port
     end
   end
 end

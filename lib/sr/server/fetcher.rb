@@ -13,6 +13,7 @@ module Sr
 
         # create spout and add it to the pool of spouts in this node
         Spout.new(params[:job_id].to_i, job_inst)
+        Sr.log.info("Fetcher : NEW_JOB : success")
         { :success => true }.to_json
       end
 
@@ -31,12 +32,12 @@ module Sr
     end
 
     def self.start_server
-      Server.run! :port => Sr::node.fetcher_port
       # contact master and tell it a new fetcher is up
       Sr::Util.send_message(Sr::node.master, Sr::MessageTypes::FETCHER_CREATED,
                             { :ipaddr => Sr::node.ipaddr,
                               :port => Sr::node.fetcher_port,
                               :uuid => Sr::UUID })
+      Server.run! :port => Sr::node.fetcher_port
     end
   end
 end

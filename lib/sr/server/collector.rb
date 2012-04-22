@@ -13,6 +13,7 @@ module Sr
 
         # create reducer and add it to the pool of reducers in this node
         Reducer.new(params[:job_id].to_i, job_inst)
+        Sr.log.info("Collector : NEW_JOB : success")
         { :success => true }.to_json
       end
 
@@ -31,12 +32,12 @@ module Sr
     end
 
     def self.start_server
-      Server.run! :port => Sr::node.collector_port
       # contact master and tell it a new collector is up
       Sr::Util.send_message(Sr::node.master, Sr::MessageTypes::COLLECTOR_CREATED,
                             { :ipaddr => Sr::node.ipaddr,
                               :port => Sr::node.collector_port,
                               :uuid => Sr::UUID })
+      Server.run! :port => Sr::node.collector_port
     end
   end
 end

@@ -3,33 +3,22 @@ GEM
   specs:
     daemons (1.1.8)
     eventmachine (0.12.10)
-    file-tail (1.0.8)
-      tins (~> 0.3)
     json (1.6.6)
+    little-plugger (1.1.3)
+    logging (1.7.2)
+      little-plugger (>= 1.1.3)
     rack (1.4.1)
     rack-protection (1.2.0)
       rack
-    ruby2ruby (1.3.1)
-      ruby_parser (~> 2.0)
-      sexp_processor (~> 3.0)
-    ruby_parser (2.3.1)
-      sexp_processor (~> 3.0)
-    sexp_processor (3.1.0)
     sinatra (1.3.2)
       rack (~> 1.3, >= 1.3.6)
       rack-protection (~> 1.2)
       tilt (~> 1.3, >= 1.3.3)
-    sourcify (0.5.0)
-      file-tail (>= 1.0.5)
-      ruby2ruby (>= 1.2.5)
-      ruby_parser (>= 2.0.5)
-      sexp_processor (>= 3.0.5)
     thin (1.3.1)
       daemons (>= 1.0.9)
       eventmachine (>= 0.12.6)
       rack (>= 1.0.0)
     tilt (1.3.3)
-    tins (0.3.12)
     trollop (1.16.2)
 
 PLATFORMS
@@ -37,7 +26,7 @@ PLATFORMS
 
 DEPENDENCIES
   json
+  logging
   sinatra
-  sourcify
   thin
   trollop

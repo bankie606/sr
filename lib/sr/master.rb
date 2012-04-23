@@ -93,6 +93,7 @@ module Sr
                                            :jobfile => job.jobfile })
             raise FailedToCreateCollectorException if !resp[:success]
           end
+          job.run
         end
       end
 
@@ -124,6 +125,7 @@ module Sr
       attr_accessor :num_fetchers, :num_workers, :num_collectors
       attr_accessor :id
       attr_accessor :jobfile
+      attr_accessor :fetchQ, :resultQ
       @@jobid = 0
 
       # initialize a job with a the number of each node type
@@ -138,6 +140,72 @@ module Sr
         # set id
         @id = @@jobid
         @@jobid += 1
+
+        # setup queues
+        @fetchQ = Sr::Messaging::Queue.new("#{@id} - fetch q")
+        @resultQ = Sr::Messaging::Queue.new("#{@id} - result q")
+      end
+
+      def run
+        Sr.log.info("running job #{@id}")
+        # fetcher thread
+        Thread.new do
+          loop do
+            @num_fetchers.times do |i|
+              fetcher = Sr::Master.jobtracker.job_fetcher_map[self][i]
+              res = Sr::Util.send_message("#{fetcher.ipaddr}:#{fetcher.fetcher_port}",
+                                          Sr::MessageTypes::FETCH,
+                                          { :job_id => @id })
+              if res[:success]
+                @fetchQ.add(res[:result])
+              else
+                Sr.log.warn("fetcher failed")
+              end
+            end
+          end
+        end
+        # worker compute thread
+        Thread.new do
+          loop do
+            @num_workers.times do |i|
+              worker = Sr::Master.jobtracker.job_worker_map[self][i]
+              datum = @fetchQ.remove
+              next if datum.nil?
+              res = Sr::Util.send_message("#{worker.ipaddr}:#{worker.worker_port}",
+                                          Sr::MessageTypes::RECEIVE_FETCH,
+                                          { :job_id => @id, :datum => datum.to_json })
+            end
+          end
+        end
+        # worker push thread
+        Thread.new do
+          loop do
+            sleep 1.0
+            @num_workers.times do |i|
+              worker = Sr::Master.jobtracker.job_worker_map[self][i]
+              res = Sr::Util.send_message("#{worker.ipaddr}:#{worker.worker_port}",
+                                          Sr::MessageTypes::PUSH_RESULTS,
+                                          { :job_id => @id })
+              @resultQ.add(res[:result])
+            end
+          end
+        end
+
+        # collector thread
+        Thread.new do
+          loop do
+            sleep 1.0
+            results = @resultQ.remove
+            p results
+            next if results.nil?
+            @num_collectors.times do |i|
+              collector = Sr::Master.jobtracker.job_collector_map[self][i]
+              Sr::Util.send_message("#{collector.ipaddr}:#{collector.collector_port}",
+                                    Sr::MessageTypes::GET_WORKER_RESULTS,
+                                    { :job_id => @id, :results => results.to_json })
+            end
+          end
+        end
       end
     end
   end

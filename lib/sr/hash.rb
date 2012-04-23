@@ -6,7 +6,7 @@ end
 
 class Hash
   def [](key)
-    if key.is_a?(Symbol) && original_bracket(key).nil?
+    if key.is_a?(Symbol) && !has_key?(key)
       original_bracket(key.to_s)
     else
       original_bracket(key)

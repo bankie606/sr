@@ -8,7 +8,12 @@ module Sr
   module Master
 
     class Server < Sinatra::Base
-      get "/#{Sr::MessageTypes::CREATE_JOB}" do
+      def self.get_or_post(path, opts={}, &block)
+        get(path, opts, &block)
+        post(path, opts, &block)
+      end
+
+      get_or_post "/#{Sr::MessageTypes::CREATE_JOB}" do
         # eval the jobfile and instantiate it
         job_inst = Sr::Util.eval_jobfile(params[:jobfile])
 
@@ -20,7 +25,7 @@ module Sr
         { :success => true }.to_json
       end
 
-      get "/#{Sr::MessageTypes::COLLECTOR_CREATED}" do
+      get_or_post "/#{Sr::MessageTypes::COLLECTOR_CREATED}" do
         # create partial node
         Sr.log.info(request.path)
         Master::jobtracker.add_partial_node(params[:uuid], params[:ipaddr],
@@ -28,7 +33,7 @@ module Sr
         { :success => true }.to_json
       end
 
-      get "/#{Sr::MessageTypes::FETCHER_CREATED}" do
+      get_or_post "/#{Sr::MessageTypes::FETCHER_CREATED}" do
         # create partial node
         Sr.log.info(request.path)
         Master::jobtracker.add_partial_node(params[:uuid], params[:ipaddr],
@@ -36,7 +41,7 @@ module Sr
         { :success => true }.to_json
       end
 
-      get "/#{Sr::MessageTypes::WORKER_CREATED}" do
+      get_or_post "/#{Sr::MessageTypes::WORKER_CREATED}" do
         # create partial node
         Sr.log.info(request.path)
         Master::jobtracker.add_partial_node(params[:uuid], params[:ipaddr],

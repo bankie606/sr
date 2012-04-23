@@ -7,7 +7,12 @@ module Sr
   module Worker
 
     class Server < Sinatra::Base
-      get "/#{Sr::MessageTypes::NEW_JOB}" do
+      def self.get_or_post(path, opts={}, &block)
+        get(path, opts, &block)
+        post(path, opts, &block)
+      end
+
+      get_or_post "/#{Sr::MessageTypes::NEW_JOB}" do
         # eval the jobfile and instantiate it
         job_inst = Sr::Util.eval_jobfile(params[:jobfile])
 
@@ -18,21 +23,31 @@ module Sr
         { :success => true }.to_json
       end
 
-      get "/#{Sr::MessageTypes::KILL_JOB}" do
+      get_or_post "/#{Sr::MessageTypes::KILL_JOB}" do
         # remove reducer from the pool of reducers in this node
         result = Worker::remove_execer(params[:job_id].to_i)
         { :success => result }.to_json
       end
 
-      get "/#{Sr::MessageTypes::PUSH_RESULTS}" do
+      get_or_post "/#{Sr::MessageTypes::PUSH_RESULTS}" do
+        Sr.log.info(request.path)
         # get result of computation as understood by this reducer
         execer = Worker::execers[params[:job_id].to_i]
-        # TODO: work out how the execer will store and push its results
-        # currently compute just returns the result and doesn't do anything
-        # with it
-        result = execer.nil? ? nil : execer
-        { :success => execer.nil?, :result => result }.to_json
+        result = execer.nil? ? nil : Array.new(execer.results)
+        # blank the reuslts
+        execer.results.clear
+        { :success => !execer.nil?, :result => result }.to_json
       end
+
+      get_or_post "/#{Sr::MessageTypes::RECEIVE_FETCH}" do
+        Sr.log.info(request.path)
+        # get result of computation as understood by this reducer
+        execer = Worker::execers[params[:job_id].to_i]
+        return { :success => false }.to_json if execer.nil?
+        execer.compute(JSON.parse(params[:datum]))
+        { :success => true }.to_json
+      end
+
     end
 
     def self.start_server

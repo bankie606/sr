@@ -11,13 +11,8 @@ module Sr
 
       # send a message over http and return the response body
       def send_message(destination, message_type, params)
-        req_uri = "http://#{destination}/#{message_type}?"
-        params.each_pair do |k,v|
-          v = v.to_s
-          req_uri += "#{k}=#{URI.escape(v, Regexp.new("[^#{URI::PATTERN::UNRESERVED}]"))}&"
-        end
-        req_uri = req_uri.gsub(/&$/, "")
-        JSON.parse(Net::HTTP.get_response(URI.parse(req_uri)).read_body)
+        req_uri = "http://#{destination}/#{message_type}"
+        JSON.parse(Net::HTTP.post_form(URI.parse(req_uri), params).read_body)
       end
 
       # http://coderrr.wordpress.com/2008/05/28/get-your-local-ip-address/
@@ -34,7 +29,7 @@ module Sr
       end
 
       def eval_jobfile(jobfile)
-        jobfile_src = URI::decode(jobfile)
+        jobfile_src = jobfile
         job_class = eval(jobfile_src)
         job_inst = job_class.new
       end

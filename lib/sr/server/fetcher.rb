@@ -7,7 +7,12 @@ module Sr
   module Fetcher
 
     class Server < Sinatra::Base
-      get "/#{Sr::MessageTypes::NEW_JOB}" do
+      def self.get_or_post(path, opts={}, &block)
+        get(path, opts, &block)
+        post(path, opts, &block)
+      end
+
+      get_or_post "/#{Sr::MessageTypes::NEW_JOB}" do
         # eval the jobfile and instantiate it
         job_inst = Sr::Util.eval_jobfile(params[:jobfile])
 
@@ -17,17 +22,17 @@ module Sr
         { :success => true }.to_json
       end
 
-      get "/#{Sr::MessageTypes::KILL_JOB}" do
+      get_or_post "/#{Sr::MessageTypes::KILL_JOB}" do
         # remove spout from the pool of spouts in this node
         result = Fetcher::remove_spout(params[:job_id].to_i)
         { :success => result }.to_json
       end
 
-      get "/#{Sr::MessageTypes::FETCH}" do
+      get_or_post "/#{Sr::MessageTypes::FETCH}" do
         # fetch next datum
         spout = Fetcher::spouts[params[:job_id].to_i]
         result = spout.nil? ? nil : spout.fetch
-        { :success => spout.nil?, :result => result }.to_json
+        { :success => !spout.nil?, :result => result }.to_json
       end
     end
 

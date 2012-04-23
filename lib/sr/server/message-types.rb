@@ -14,12 +14,14 @@ module Sr
 
     # collector
     RESULT = "result"
+    GET_WORKER_RESULTS = "get-results"
 
     # fetcher
     FETCH = "fetch"
 
     # worker
     PUSH_RESULTS = "push-results"
+    RECEIVE_FETCH = "receive-fetch"
   end
 end
 

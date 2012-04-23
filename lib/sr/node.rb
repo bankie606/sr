@@ -23,6 +23,11 @@ module Sr
       !(@uuid.nil? || @ipaddr.nil? || @fetcher_port.nil? ||
         @worker_port.nil? || @collector_port.nil?)
     end
+
+    def eql?(other)
+      @uuid == other.uuid
+    end
+
   end
 end
 

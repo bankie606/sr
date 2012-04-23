@@ -18,8 +18,8 @@ module Sr
         job_inst = Sr::Util.eval_jobfile(params[:jobfile])
 
         # create the job
-        job = Sr::Master::Job.new(job_inst.num_fetchers, job_inst.num_collectors,
-                                  job_inst.num_workers,
+        job = Sr::Master::Job.new(job_inst.num_fetchers, job_inst.num_workers,
+                                  job_inst.num_collectors,
                                   URI::decode(params[:jobfile]))
         Sr::Master.jobtracker.add_job_and_start(job)
         { :success => true }.to_json

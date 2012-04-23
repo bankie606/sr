@@ -190,7 +190,15 @@ module Sr
             worker = free.shift
             next if worker.nil?
             datum_batch = @fetchQ.removeN(5)
-            next if datum_batch.nil? || datum_batch.empty?
+
+            if datum_batch.nil? || datum_batch.empty?
+              # make sure we add the worker back to the pool
+              free_mutex.synchronize do
+                free << worker
+              end
+              next
+            end
+
             Sr.log.info("job(#{@id}) - #{count} : shipping " +
                         "#{datum_batch.length} fetched datums to #{worker.uuid}")
             Thread.new do
@@ -205,8 +213,12 @@ module Sr
               end
             end
           end
+          # don't kill the thread until all workers are done computing
+          while free.length != @num_workers
+            sleep 0.1
+          end
+          @kill_pushT = true if free.length == @num_workers
           Sr.log.info("job(#{@id}) - compute complete")
-          @kill_pushT = true
         end
         # worker push thread
         @pushT = Thread.new do

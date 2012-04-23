@@ -1,5 +1,8 @@
 require "sr/jobfile"
 
+require "base64"
+require "zlib"
+
 class WikipediaWordCount < Sr::Job::Jobfile
   attr_accessor :num_revs, :seq
   # collector
@@ -14,6 +17,8 @@ class WikipediaWordCount < Sr::Job::Jobfile
   end
 
   def collector_combine_block(results, n, val)
+    val ||= Hash.new(0)
+    n ||= 0
     results.each_pair do |word, count|
       val[word] = val[word] + count
     end
@@ -21,15 +26,19 @@ class WikipediaWordCount < Sr::Job::Jobfile
   end
 
   def fetcher_fetch_block(*args)
-    res = Sr::Util.send_message("localhost:7777", "next_rev/#{seq}", {})
+    return nil if @seq >= @num_revs
+    res = Sr::Util.send_message("localhost:7777", "next_rev/#{@seq}", {})
     @seq += 1
-    res
+    res["#{@seq-1}"]
   end
 
   def worker_init_block(obj)
     obj.add_compute_method(1.0) do |datum|
       result = Hash.new(0)
+      datum = Zlib::Inflate.inflate(datum[:fulltext])
+      datum = Base64::decode64(datum)
       datum.split(/\s/).each do |word|
+        next if !(word =~ /^[\u0000-\u0079]+$/)
         word = word.gsub(/[\.,!\?]/, "")
         result[word] = result[word] + 1
       end

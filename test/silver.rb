@@ -15,3 +15,8 @@ puts h_inv[h_inv.keys.max].sort.to_s
 # ▶ test/silver.rb
 # freq: 1345760 | count: 1
 # ["the"]
+#
+# with num_revs = 500
+# =====================
+# freq: 224592 | count: 1
+# ["the"]

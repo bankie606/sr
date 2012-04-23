@@ -6,6 +6,7 @@ require "base64"
 require "zlib"
 
 @num_revs = Sr::Util.send_message("localhost:7777", "num_revs", {})[:num_revs].to_i
+# @num_revs = 500
 @seq = 0
 
 result = Hash.new(0)
@@ -33,4 +34,9 @@ puts "freq: #{h_inv.keys.max} | count: #{h_inv[h_inv.keys.max].length}"
 puts h_inv[h_inv.keys.max].sort.to_s
 
 # freq: 1345760 | count: 1
+# ["the"]
+#
+# with num_revs = 500
+# =====================
+# freq: 224592 | count: 1
 # ["the"]

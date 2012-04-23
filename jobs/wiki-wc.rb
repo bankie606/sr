@@ -13,6 +13,7 @@ class WikipediaWordCount < Sr::Job::Jobfile
     @num_collectors = @num_fetchers = 1
     @num_workers = 2
     @num_revs = Sr::Util.send_message("air.local:7777", "num_revs", {})[:num_revs].to_i
+    # @num_revs = 500
     @seq = 0
     @results = Hash.new(0)
   end

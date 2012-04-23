@@ -126,6 +126,8 @@ module Sr
       attr_accessor :id
       attr_accessor :jobfile
       attr_accessor :fetchQ, :resultQ
+      attr_accessor :fetchT, :computeT, :pushT, :collectT
+      attr_accessor :kill_fetchT, :kill_computeT, :kill_pushT, :kill_collectT
       @@jobid = 0
 
       # initialize a job with a the number of each node type
@@ -149,7 +151,7 @@ module Sr
       def run
         Sr.log.info("running job #{@id}")
         # fetcher thread
-        Thread.new do
+        @fetchT = Thread.new do
           loop do
             @num_fetchers.times do |i|
               fetcher = Sr::Master.jobtracker.job_fetcher_map[self][i]
@@ -160,51 +162,68 @@ module Sr
                 @fetchQ.add(res[:result])
               else
                 Sr.log.warn("fetcher failed")
+                @kill_fetchT = true
               end
             end
+            break if @kill_fetchT
           end
+          Sr.log.info("job(#{@id}) - fetch complete")
+          @kill_computeT = true
         end
         # worker compute thread
-        Thread.new do
+        @computeT = Thread.new do
+          Thread.current[:count] = 0
           loop do
             @num_workers.times do |i|
+              sleep 0.1
               worker = Sr::Master.jobtracker.job_worker_map[self][i]
-              datum = @fetchQ.remove
-              next if datum.nil?
+              datum_batch = @fetchQ.removeN(100)
+              next if datum_batch.nil? || datum_batch.empty?
+              Sr.log.info("#{Thread.current[:count]} : shipping " +
+                          "#{datum_batch.length} fetched datums to #{worker.uuid}")
               res = Sr::Util.send_message("#{worker.ipaddr}:#{worker.worker_port}",
-                                          Sr::MessageTypes::RECEIVE_FETCH,
-                                          { :job_id => @id, :datum => datum.to_json })
+                                          Sr::MessageTypes::RECEIVE_FETCH_BATCH,
+                                          { :job_id => @id,
+                                            :datum_batch => datum_batch.to_json })
+              Thread.current[:count] = Thread.current[:count] + 1
             end
+            break if @kill_computeT && @fetchQ.q.length == 0
           end
+          Sr.log.info("job(#{@id}) - compute complete")
+          @kill_pushT = true
         end
         # worker push thread
-        Thread.new do
+        @pushT = Thread.new do
           loop do
-            sleep 1.0
+            sleep 0.1
             @num_workers.times do |i|
               worker = Sr::Master.jobtracker.job_worker_map[self][i]
               res = Sr::Util.send_message("#{worker.ipaddr}:#{worker.worker_port}",
                                           Sr::MessageTypes::PUSH_RESULTS,
                                           { :job_id => @id })
-              @resultQ.add(res[:result])
+              @resultQ.add(res[:result]) if !res[:result].empty?
             end
+            break if @kill_pushT
           end
+          @kill_collectT = true
         end
 
         # collector thread
-        Thread.new do
+        @collectT = Thread.new do
           loop do
-            sleep 1.0
-            results = @resultQ.remove
-            p results
-            next if results.nil?
+            sleep 0.1 if !@kill_collectT
+            results = @resultQ.removeAll
+            next if results.nil? || results.empty?
             @num_collectors.times do |i|
               collector = Sr::Master.jobtracker.job_collector_map[self][i]
               Sr::Util.send_message("#{collector.ipaddr}:#{collector.collector_port}",
-                                    Sr::MessageTypes::GET_WORKER_RESULTS,
-                                    { :job_id => @id, :results => results.to_json })
+                                    Sr::MessageTypes::GET_WORKER_RESULTS_BATCH,
+                                    { :job_id => @id,
+                                      :results_batch => results.to_json })
             end
+            break if @kill_collectT && @resultQ.q.length == 0
           end
+          Sr.log.info("job(#{@id}) - collect complete")
         end
       end
     end

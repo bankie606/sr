@@ -67,7 +67,7 @@ module Sr
           @jobs.push job
 
           job.num_fetchers.times do |i|
-            node = get_node_for_task
+            node = get_node_for_task @job_fetcher_map[job]
             @job_fetcher_map[job] = @job_fetcher_map[job] << node
             resp = Sr::Util.send_message("#{node.ipaddr}:#{node.fetcher_port}",
                                          Sr::MessageTypes::NEW_JOB,
@@ -76,7 +76,8 @@ module Sr
             raise FailedToCreateFetcherException if !resp[:success]
           end
           job.num_workers.times do |i|
-            node = get_node_for_task
+            node = get_node_for_task @job_worker_map[job]
+            Sr.log.info("Add #{node.uuid} as worker for job(#{job.id})")
             @job_worker_map[job] = @job_worker_map[job] << node
             resp = Sr::Util.send_message("#{node.ipaddr}:#{node.worker_port}",
                                          Sr::MessageTypes::NEW_JOB,
@@ -85,7 +86,7 @@ module Sr
             raise FailedToCreateWorkerException if !resp[:success]
           end
           job.num_collectors.times do |i|
-            node = get_node_for_task
+            node = get_node_for_task @job_collector_map[job]
             @job_collector_map[job] = @job_collector_map[job] << node
             resp = Sr::Util.send_message("#{node.ipaddr}:#{node.collector_port}",
                                          Sr::MessageTypes::NEW_JOB,
@@ -99,12 +100,20 @@ module Sr
 
       # chose one of the least worked nodes to perform a task
       # This is essentially weighted round robin scheduling
-      def get_node_for_task
+      def get_node_for_task(nodes_already)
+        nodes_already = Array.new(nodes_already)
         # get the least burdened nodes
         least_burdened_job_count = @task_counts.keys.min
         least_worked = @task_counts[least_burdened_job_count]
         # choose one of them
-        node = least_worked.shift
+        node = nil
+        least_worked.each do |lw|
+          next if nodes_already.include? lw
+          node = lw
+          least_worked.delete(node)
+          break
+        end
+        node = least_worked.shift if node.nil?
 
         # restore the list
         if least_worked.length > 0
@@ -172,20 +181,24 @@ module Sr
         end
         # worker compute thread
         @computeT = Thread.new do
-          Thread.current[:count] = 0
+          count = 0
+          free = Array.new(Sr::Master.jobtracker.job_worker_map[self])
+          p free
           loop do
-            @num_workers.times do |i|
-              sleep 0.1
-              worker = Sr::Master.jobtracker.job_worker_map[self][i]
-              datum_batch = @fetchQ.removeN(100)
-              next if datum_batch.nil? || datum_batch.empty?
-              Sr.log.info("#{Thread.current[:count]} : shipping " +
-                          "#{datum_batch.length} fetched datums to #{worker.uuid}")
+            sleep 0.1
+            worker = free.shift
+            next if worker.nil?
+            datum_batch = @fetchQ.removeN(100)
+            next if datum_batch.nil? || datum_batch.empty?
+            Sr.log.info("#{count} : shipping " +
+                        "#{datum_batch.length} fetched datums to #{worker.uuid}")
+            Thread.new do
               res = Sr::Util.send_message("#{worker.ipaddr}:#{worker.worker_port}",
-                                          Sr::MessageTypes::RECEIVE_FETCH_BATCH,
-                                          { :job_id => @id,
-                                            :datum_batch => datum_batch.to_json })
-              Thread.current[:count] = Thread.current[:count] + 1
+                                            Sr::MessageTypes::RECEIVE_FETCH_BATCH,
+                                            { :job_id => @id,
+                                              :datum_batch => datum_batch.to_json })
+              free << worker
+              count = count + 1
             end
             break if @kill_computeT && @fetchQ.q.length == 0
           end

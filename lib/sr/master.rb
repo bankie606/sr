@@ -184,19 +184,15 @@ module Sr
           free_mutex = Mutex.new
           count = 0
           free = Array.new(Sr::Master.jobtracker.job_worker_map[self])
-          p free
           loop do
             sleep 0.1
             worker = free.shift
             next if worker.nil?
-            datum_batch = @fetchQ.removeN(100)
+            datum_batch = @fetchQ.removeN(5)
             next if datum_batch.nil? || datum_batch.empty?
             Sr.log.info("#{count} : shipping " +
                         "#{datum_batch.length} fetched datums to #{worker.uuid}")
             Thread.new do
-              if worker.ipaddr != Sr::Util.local_ip
-                p "Sending datums to dualie"
-              end
               res = Sr::Util.send_message("#{worker.ipaddr}:#{worker.worker_port}",
                                             Sr::MessageTypes::RECEIVE_FETCH_BATCH,
                                             { :job_id => @id,
@@ -204,7 +200,6 @@ module Sr
 
               free_mutex.synchronize do
                 free << worker
-                p free
                 count = count + 1
               end
             end
@@ -224,7 +219,9 @@ module Sr
                                           { :job_id => @id })
               @resultQ.add(res[:result]) if !res[:result].empty?
             end
-            break if @kill_pushT
+            # make sure we've flushed the workers
+            break if @kill_pushT_for_real
+            @kill_pushT_for_real = true if @kill_pushT
           end
           @kill_collectT = true
         end

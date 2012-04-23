@@ -18,7 +18,7 @@ module Sr
 
         # create reducer and add it to the pool of reducers in this node
         Reducer.new(params[:job_id].to_i, job_inst)
-        Sr.log.info("Collector : NEW_JOB : success")
+        Sr.log.debug("Collector : NEW_JOB : success")
         { :success => true }.to_json
       end
 
@@ -36,11 +36,23 @@ module Sr
       end
 
       get_or_post "/#{Sr::MessageTypes::GET_WORKER_RESULTS}" do
+        Sr.log.debug(request.path)
         # get result of computation as understood by this reducer
         reducer = Collector::reducers[params[:job_id].to_i]
-        return { :success => false } if reducer.nil?
+        return { :success => false }.to_json if reducer.nil?
         reducer.merge_results_from_worker(JSON.parse(params[:results]))
-        { :success => true }
+        { :success => true }.to_json
+      end
+
+      get_or_post "/#{Sr::MessageTypes::GET_WORKER_RESULTS_BATCH}" do
+        Sr.log.debug(request.path)
+        # get result of computation as understood by this reducer
+        reducer = Collector::reducers[params[:job_id].to_i]
+        return { :success => false }.to_json if reducer.nil?
+        JSON.parse(params[:results_batch]).each do |results|
+          reducer.merge_results_from_worker(results)
+        end
+        { :success => true }.to_json
       end
     end
 

@@ -27,7 +27,7 @@ module Sr
 
       get_or_post "/#{Sr::MessageTypes::COLLECTOR_CREATED}" do
         # create partial node
-        Sr.log.info(request.path)
+        Sr.log.debug(request.path)
         Master::jobtracker.add_partial_node(params[:uuid], params[:ipaddr],
                                             :collector_port=, params[:port])
         { :success => true }.to_json
@@ -35,7 +35,7 @@ module Sr
 
       get_or_post "/#{Sr::MessageTypes::FETCHER_CREATED}" do
         # create partial node
-        Sr.log.info(request.path)
+        Sr.log.debug(request.path)
         Master::jobtracker.add_partial_node(params[:uuid], params[:ipaddr],
                                             :fetcher_port=, params[:port])
         { :success => true }.to_json
@@ -43,7 +43,7 @@ module Sr
 
       get_or_post "/#{Sr::MessageTypes::WORKER_CREATED}" do
         # create partial node
-        Sr.log.info(request.path)
+        Sr.log.debug(request.path)
         Master::jobtracker.add_partial_node(params[:uuid], params[:ipaddr],
                                             :worker_port=, params[:port])
         { :success => true }.to_json

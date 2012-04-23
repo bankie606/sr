@@ -18,7 +18,7 @@ module Sr
 
         # create spout and add it to the pool of spouts in this node
         Spout.new(params[:job_id].to_i, job_inst)
-        Sr.log.info("Fetcher : NEW_JOB : success")
+        Sr.log.debug("Fetcher : NEW_JOB : success")
         { :success => true }.to_json
       end
 
@@ -32,7 +32,7 @@ module Sr
         # fetch next datum
         spout = Fetcher::spouts[params[:job_id].to_i]
         result = spout.nil? ? nil : spout.fetch
-        { :success => !spout.nil?, :result => result }.to_json
+        { :success => !spout.nil? && !result.nil?, :result => result }.to_json
       end
     end
 

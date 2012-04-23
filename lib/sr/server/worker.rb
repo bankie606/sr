@@ -19,7 +19,7 @@ module Sr
         # create execer and add it to the pool of execers in this node
         # TODO: document what init block is expected to setup
         Execer.new(params[:job_id].to_i, job_inst)
-        Sr.log.info("Worker : NEW_JOB : success")
+        Sr.log.debug("Worker : NEW_JOB : success")
         { :success => true }.to_json
       end
 
@@ -30,7 +30,7 @@ module Sr
       end
 
       get_or_post "/#{Sr::MessageTypes::PUSH_RESULTS}" do
-        Sr.log.info(request.path)
+        Sr.log.debug(request.path)
         # get result of computation as understood by this reducer
         execer = Worker::execers[params[:job_id].to_i]
         result = execer.nil? ? nil : Array.new(execer.results)
@@ -40,7 +40,7 @@ module Sr
       end
 
       get_or_post "/#{Sr::MessageTypes::RECEIVE_FETCH}" do
-        Sr.log.info(request.path)
+        Sr.log.debug(request.path)
         # get result of computation as understood by this reducer
         execer = Worker::execers[params[:job_id].to_i]
         return { :success => false }.to_json if execer.nil?
@@ -48,6 +48,16 @@ module Sr
         { :success => true }.to_json
       end
 
+      get_or_post "/#{Sr::MessageTypes::RECEIVE_FETCH_BATCH}" do
+        Sr.log.debug(request.path)
+        # get result of computation as understood by this reducer
+        execer = Worker::execers[params[:job_id].to_i]
+        return { :success => false }.to_json if execer.nil?
+        JSON.parse(params[:datum_batch]).each do |datum|
+          execer.compute(datum)
+        end
+        { :success => true }.to_json
+      end
     end
 
     def self.start_server

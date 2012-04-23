@@ -15,6 +15,7 @@ module Sr
     # collector
     RESULT = "result"
     GET_WORKER_RESULTS = "get-results"
+    GET_WORKER_RESULTS_BATCH = "get-results-batch"
 
     # fetcher
     FETCH = "fetch"
@@ -22,6 +23,7 @@ module Sr
     # worker
     PUSH_RESULTS = "push-results"
     RECEIVE_FETCH = "receive-fetch"
+    RECEIVE_FETCH_BATCH = "receive-fetch-batch"
   end
 end
 

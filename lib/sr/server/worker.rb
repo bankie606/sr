@@ -50,6 +50,7 @@ module Sr
 
       get_or_post "/#{Sr::MessageTypes::RECEIVE_FETCH_BATCH}" do
         Sr.log.debug(request.path)
+        Sr.log.info(request.path)
         # get result of computation as understood by this reducer
         execer = Worker::execers[params[:job_id].to_i]
         return { :success => false }.to_json if execer.nil?
@@ -58,6 +59,7 @@ module Sr
         batch.each do |datum|
           execer.compute(datum)
         end
+        Sr.log.info("done with datums")
         { :success => true }.to_json
       end
     end

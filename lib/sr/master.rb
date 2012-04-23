@@ -158,7 +158,7 @@ module Sr
       end
 
       def run
-        Sr.log.info("running job #{@id}")
+        Sr.log.info("running job(#{@id})")
         # fetcher thread
         @fetchT = Thread.new do
           loop do
@@ -170,7 +170,7 @@ module Sr
               if res[:success]
                 @fetchQ.add(res[:result])
               else
-                Sr.log.warn("fetcher failed")
+                Sr.log.warn("job(#{@id}) - fetcher failed")
                 @kill_fetchT = true
               end
             end
@@ -190,7 +190,7 @@ module Sr
             next if worker.nil?
             datum_batch = @fetchQ.removeN(5)
             next if datum_batch.nil? || datum_batch.empty?
-            Sr.log.info("#{count} : shipping " +
+            Sr.log.info("job(#{@id}) - #{count} : shipping " +
                         "#{datum_batch.length} fetched datums to #{worker.uuid}")
             Thread.new do
               res = Sr::Util.send_message("#{worker.ipaddr}:#{worker.worker_port}",

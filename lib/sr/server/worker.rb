@@ -53,7 +53,9 @@ module Sr
         # get result of computation as understood by this reducer
         execer = Worker::execers[params[:job_id].to_i]
         return { :success => false }.to_json if execer.nil?
-        JSON.parse(params[:datum_batch]).each do |datum|
+        batch = JSON.parse(params[:datum_batch])
+        Sr.log.info("job(#{params[:job_id]}) received #{batch.length} datums")
+        batch.each do |datum|
           execer.compute(datum)
         end
         { :success => true }.to_json

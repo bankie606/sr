@@ -1,5 +1,5 @@
 module Sr
-  VERSION = "0.0.1"
+  VERSION = "0.1.0"
   UUID = begin `uuidgen`.strip rescue rand(10000) end
 end
 

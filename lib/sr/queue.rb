@@ -21,6 +21,25 @@ module Sr
       def remove
         @mutex.synchronize { @q.shift }
       end
+
+      def removeAll
+        @mutex.synchronize do
+          results = Array.new(@q)
+          @q.clear
+          results
+        end
+      end
+
+      def removeN(n)
+        @mutex.synchronize do
+          results = Array.new
+          n.times do |i|
+            r = @q.shift
+            results << r if !r.nil?
+          end
+          results
+        end
+      end
     end
   end
 end

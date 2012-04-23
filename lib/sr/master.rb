@@ -162,8 +162,7 @@ module Sr
         # fetcher thread
         @fetchT = Thread.new do
           loop do
-            @num_fetchers.times do |i|
-              fetcher = Sr::Master.jobtracker.job_fetcher_map[self][i]
+            Sr::Master.jobtracker.job_fetcher_map[self].each do |fetcher|
               res = Sr::Util.send_message("#{fetcher.ipaddr}:#{fetcher.fetcher_port}",
                                           Sr::MessageTypes::FETCH,
                                           { :job_id => @id })
@@ -224,8 +223,7 @@ module Sr
         @pushT = Thread.new do
           loop do
             sleep 0.1
-            @num_workers.times do |i|
-              worker = Sr::Master.jobtracker.job_worker_map[self][i]
+            Sr::Master.jobtracker.job_worker_map[self].each do |worker|
               res = Sr::Util.send_message("#{worker.ipaddr}:#{worker.worker_port}",
                                           Sr::MessageTypes::PUSH_RESULTS,
                                           { :job_id => @id })
@@ -246,8 +244,7 @@ module Sr
             sleep 0.1 if !@kill_collectT
             results = @resultQ.removeAll
             next if results.nil? || results.empty?
-            @num_collectors.times do |i|
-              collector = Sr::Master.jobtracker.job_collector_map[self][i]
+            Sr::Master.jobtracker.job_collector_map[self].each do |collector|
               Sr::Util.send_message("#{collector.ipaddr}:#{collector.collector_port}",
                                     Sr::MessageTypes::GET_WORKER_RESULTS_BATCH,
                                     { :job_id => @id,

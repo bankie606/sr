@@ -47,9 +47,11 @@ module Sr
       # attributes :n and :val representing the new
       # state of these instance variables
       def merge_results_from_worker(results)
-        new_props = @job_inst.collector_combine_block(results, @n, @val)
-        @n = new_props[:n]
-        @val = new_props[:val]
+        results.each do |r|
+          new_props = @job_inst.collector_combine_block(r, @n, @val)
+          @n = new_props[:n]
+          @val = new_props[:val]
+        end
       end
     end
   end

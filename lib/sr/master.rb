@@ -185,6 +185,7 @@ module Sr
           count = 0
           free = Array.new(Sr::Master.jobtracker.job_worker_map[self])
           loop do
+            break if @kill_computeT && @fetchQ.q.length == 0
             sleep 0.1
             worker = free.shift
             next if worker.nil?
@@ -203,7 +204,6 @@ module Sr
                 count = count + 1
               end
             end
-            break if @kill_computeT && @fetchQ.q.length == 0
           end
           Sr.log.info("job(#{@id}) - compute complete")
           @kill_pushT = true
@@ -223,12 +223,14 @@ module Sr
             break if @kill_pushT_for_real
             @kill_pushT_for_real = true if @kill_pushT
           end
+          Sr.log.info("job(#{@id}) - worker push complete")
           @kill_collectT = true
         end
 
         # collector thread
         @collectT = Thread.new do
           loop do
+            break if @kill_collectT && @resultQ.q.length == 0
             sleep 0.1 if !@kill_collectT
             results = @resultQ.removeAll
             next if results.nil? || results.empty?
@@ -239,7 +241,6 @@ module Sr
                                     { :job_id => @id,
                                       :results_batch => results.to_json })
             end
-            break if @kill_collectT && @resultQ.q.length == 0
           end
           Sr.log.info("job(#{@id}) - collect complete")
         end

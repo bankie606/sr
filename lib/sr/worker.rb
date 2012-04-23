@@ -33,6 +33,9 @@ module Sr
       attr_accessor :weighted_accuracy_score, :target_accuracy_score
       attr_accessor :timeout
 
+      # results so far
+      attr_accessor :results
+
       DEFAULT_TIMEOUT = 1.0
       DEFAULT_TARGET_ACCURACY = 0.8
 
@@ -44,6 +47,7 @@ module Sr
         @weighted_accuracy_score = 0.0
         @target_accuracy_score = DEFAULT_TARGET_ACCURACY
         @timeout = DEFAULT_TIMEOUT
+        @results = Array.new
 
         # run init block
         @job_inst = job_inst
@@ -82,7 +86,11 @@ module Sr
           @weighted_accuracy_score = @weighted_accuracy_score * @num_datum / (@num_datum + 1.0)
         end
         @num_datum += 1
-        return result
+        @results << result
+      end
+
+      def choose_accuracy
+        @compute_methods.keys.max
       end
     end
   end

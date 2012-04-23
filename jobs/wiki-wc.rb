@@ -10,8 +10,9 @@ class WikipediaWordCount < Sr::Job::Jobfile
 
 
   def initialize
-    @num_collectors = @num_fetchers = @num_workers = 1
-    @num_revs = Sr::Util.send_message("localhost:7777", "num_revs", {})[:num_revs].to_i
+    @num_collectors = @num_fetchers = 1
+    @num_workers = 2
+    @num_revs = Sr::Util.send_message("air.local:7777", "num_revs", {})[:num_revs].to_i
     @seq = 0
     @results = Hash.new(0)
   end
@@ -27,7 +28,7 @@ class WikipediaWordCount < Sr::Job::Jobfile
 
   def fetcher_fetch_block(*args)
     return nil if @seq >= @num_revs
-    res = Sr::Util.send_message("localhost:7777", "next_rev/#{@seq}", {})
+    res = Sr::Util.send_message("air.local:7777", "next_rev/#{@seq}", {})
     @seq += 1
     res["#{@seq-1}"]
   end

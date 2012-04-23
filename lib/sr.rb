@@ -5,6 +5,8 @@ end
 
 require "sr/logging"
 
+require "sr/queue"
+
 require "sr/hash" # monkey patch
 
 require "sr/collector"

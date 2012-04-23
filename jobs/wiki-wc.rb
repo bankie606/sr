@@ -38,9 +38,11 @@ class WikipediaWordCount < Sr::Job::Jobfile
       datum = Zlib::Inflate.inflate(datum[:fulltext])
       datum = Base64::decode64(datum)
       datum.split(/\s/).each do |word|
-        next if !(word =~ /^[\u0000-\u0079]+$/)
-        word = word.gsub(/[\.,!\?]/, "").downcase
-        result[word] = result[word] + 1
+        next if !(word =~ /^[\u0000-\u007F]+$/)
+        word = word.downcase
+        next if !(word =~ /^[a-z0-9\-]+$/)
+        word = word.gsub(/[\.,!\?]$/, "").downcase
+       result[word] = result[word] + 1
       end
       result
     end

@@ -7,15 +7,15 @@ module Sr
       @spouts
     end
 
-    def self.add_sprout(job_id, sprout)
-      @sprouts ||= Hash.new
-      @sprouts[job_id] = sprout
+    def self.add_spout(job_id, spout)
+      @spouts ||= Hash.new
+      @spouts[job_id] = spout
     end
 
     def self.remove_spout(job_id)
-      @sprouts ||= Hash.new
+      @spouts ||= Hash.new
       # return whether or not the job was successfully killed
-      if @sprouts.remove(job_id).nil?
+      if @spouts.remove(job_id).nil?
         return false
       else
         return true
@@ -32,13 +32,17 @@ module Sr
       # of the number of fetches
       def initialize(job_id, job_inst)
         @job_inst = job_inst
+        @job_id = job_id
         @seq_number = 0
         # keep track of ourselves
-        Fetcher::add_sprout(job_id, self)
+        Fetcher::add_spout(job_id, self)
       end
 
       def fetch
         result = @job_inst.fetcher_fetch_block(@seq_number)
+        if @seq_number % 100 == 0
+          Sr.log.info("fetched #{@seq_number} records for jobid = #{@job_id}")
+        end
         @seq_number += 1
         result
       end

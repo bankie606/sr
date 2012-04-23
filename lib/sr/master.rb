@@ -181,6 +181,7 @@ module Sr
         end
         # worker compute thread
         @computeT = Thread.new do
+          free_mutex = Mutex.new
           count = 0
           free = Array.new(Sr::Master.jobtracker.job_worker_map[self])
           p free
@@ -193,12 +194,19 @@ module Sr
             Sr.log.info("#{count} : shipping " +
                         "#{datum_batch.length} fetched datums to #{worker.uuid}")
             Thread.new do
+              if worker.ipaddr != Sr::Util.local_ip
+                p "Sending datums to dualie"
+              end
               res = Sr::Util.send_message("#{worker.ipaddr}:#{worker.worker_port}",
                                             Sr::MessageTypes::RECEIVE_FETCH_BATCH,
                                             { :job_id => @id,
                                               :datum_batch => datum_batch.to_json })
-              free << worker
-              count = count + 1
+
+              free_mutex.synchronize do
+                free << worker
+                p free
+                count = count + 1
+              end
             end
             break if @kill_computeT && @fetchQ.q.length == 0
           end

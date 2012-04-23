@@ -1,5 +1,7 @@
 require "sr"
 
+require "thread"
+
 module Sr
   module Collector
     def self.reducers
@@ -29,6 +31,7 @@ module Sr
       def initialize(job_id, job_inst)
         @job_inst = job_inst
         @workers = Array.new
+        @mutex = Mutex.new
         Collector::add_reducer(job_id, self)
       end
 
@@ -47,10 +50,12 @@ module Sr
       # attributes :n and :val representing the new
       # state of these instance variables
       def merge_results_from_worker(results)
-        results.each do |r|
-          new_props = @job_inst.collector_combine_block(r, @n, @val)
-          @n = new_props[:n]
-          @val = new_props[:val]
+        @mutex.synchronize do
+          results.each do |r|
+            new_props = @job_inst.collector_combine_block(r, @n, @val)
+            @n = new_props[:n]
+            @val = new_props[:val]
+          end
         end
       end
     end

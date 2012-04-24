@@ -51,6 +51,7 @@ module Sr
 
         # run init block
         @job_inst = job_inst
+        @job_id = job_id
         job_inst.worker_init_block(self)
 
         Worker::add_execer(job_id, self)
@@ -69,6 +70,7 @@ module Sr
       # Updates accuracy metrics.
       def compute(datum)
         acc = choose_accuracy
+        Sr.log.info("job(#{@job_id}) - worker using acc = #{acc}")
         block = @compute_methods[acc]
         result = nil
         begin
@@ -79,17 +81,26 @@ module Sr
               block.call datum @num_datum
             end
           end
-          @weighted_accuracy_score = (@weighted_accuracy_score * @num_datum + acc) / (@num_datum + 1.0)
+          @weighted_accuracy_score = (@weighted_accuracy_score *
+                                      @num_datum + acc) / (@num_datum + 1.0)
         rescue Timeout::Error => e
           # we killed the task because it was taking too long
           @num_killed += 1
-          @weighted_accuracy_score = @weighted_accuracy_score * @num_datum / (@num_datum + 1.0)
+          @weighted_accuracy_score = (@weighted_accuracy_score *
+                                      @num_datum) / (@num_datum + 1.0)
         end
         @num_datum += 1
         @results << result
       end
 
+      # choose the lowest accuracy we can that satisfies the target
+      # accuracy requirement or the best compute method if we can't
       def choose_accuracy
+        @compute_methods.keys.sort.each do |acc|
+          projected_accuracy_score = (@weighted_accuracy_score *
+                                      @num_datum + acc) / (@num_datum + 1.0)
+          return acc if projected_accuracy_score >= @target_accuracy_score
+        end
         @compute_methods.keys.max
       end
     end

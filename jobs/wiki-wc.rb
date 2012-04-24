@@ -22,6 +22,7 @@ class WikipediaWordCount < Sr::Job::Jobfile
   def collector_combine_block(results, n, val)
     val ||= Hash.new(0)
     n ||= 0
+    results ||= Hash.new(0)
     results.each_pair do |word, count|
       val[word] = val[word] + count
     end
@@ -36,6 +37,11 @@ class WikipediaWordCount < Sr::Job::Jobfile
   end
 
   def worker_init_block(obj)
+    # set tuning params
+
+    # obj.target_accuracy_score = 0.4
+    # obj.kill_frequency = 0.1
+
     # do the word count for real
     obj.add_compute_method(1.0) do |datum|
       result = Hash.new(0)

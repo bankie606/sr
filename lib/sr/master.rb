@@ -216,6 +216,12 @@ module Sr
           while free.length != @num_workers
             sleep 0.1
           end
+          # print out all worker metadata
+          free.each do |worker|
+            p Sr::Util.send_message("#{worker.ipaddr}:#{worker.worker_port}",
+                                    Sr::MessageTypes::GET_METADATA,
+                                    { :job_id => @id })
+          end
           @kill_pushT = true if free.length == @num_workers
           Sr.log.info("job(#{@id}) - compute complete")
         end

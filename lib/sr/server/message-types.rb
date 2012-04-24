@@ -24,6 +24,7 @@ module Sr
     PUSH_RESULTS = "push-results"
     RECEIVE_FETCH = "receive-fetch"
     RECEIVE_FETCH_BATCH = "receive-fetch-batch"
+    GET_METADATA = "get-metadata"
   end
 end
 

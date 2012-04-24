@@ -33,10 +33,9 @@ module Sr
         Sr.log.debug(request.path)
         # get result of computation as understood by this reducer
         execer = Worker::execers[params[:job_id].to_i]
-        result = execer.nil? ? nil : Array.new(execer.results)
-        # blank the reuslts
-        execer.results.clear
-        { :success => !execer.nil?, :result => result }.to_json
+        result = execer.nil? ? nil : execer.get_results
+        metadata = execer.nil? ? nil : execer.get_metadata
+        { :success => !execer.nil?, :result => result, :metadata => metadata }.to_json
       end
 
       get_or_post "/#{Sr::MessageTypes::RECEIVE_FETCH}" do
@@ -50,7 +49,6 @@ module Sr
 
       get_or_post "/#{Sr::MessageTypes::RECEIVE_FETCH_BATCH}" do
         Sr.log.debug(request.path)
-        Sr.log.info(request.path)
         # get result of computation as understood by this reducer
         execer = Worker::execers[params[:job_id].to_i]
         return { :success => false }.to_json if execer.nil?
@@ -61,6 +59,13 @@ module Sr
         end
         Sr.log.info("done with datums")
         { :success => true }.to_json
+      end
+
+      get_or_post "/#{Sr::MessageTypes::GET_METADATA}" do
+        # get result of computation as understood by this reducer
+        execer = Worker::execers[params[:job_id].to_i]
+        return { :success => false }.to_json if execer.nil?
+        { :success => true, :metadata => execer.get_metadata }.to_json
       end
     end
 

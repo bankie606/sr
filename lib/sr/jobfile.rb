@@ -8,9 +8,15 @@ module Sr
     # to start the job
     class Jobfile
       attr_accessor :num_collectors, :num_fetchers, :num_workers
+      # used for killing tasks
+      attr_accessor :kill_at_worker, :kill_at_master
+      attr_accessor :kill_frequency
 
       def initialize
         @num_collectors = @num_fetchers = @num_workers = nil
+        @kill_at_worker = true
+        @kill_at_master = false
+        @kill_frequency = nil
       end
 
       def collector_combine_block(results, n, val)

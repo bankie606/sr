@@ -17,6 +17,12 @@ class WikipediaWordCount < Sr::Job::Jobfile
     # @num_revs = 500
     @seq = 0
     @results = Hash.new(0)
+
+    # killing
+    # This avoids making TCP connections
+    @kill_at_worker = false
+    @kill_at_master = true
+    @kill_frequency = 0.1
   end
 
   def collector_combine_block(results, n, val)
@@ -39,8 +45,8 @@ class WikipediaWordCount < Sr::Job::Jobfile
   def worker_init_block(obj)
     # set tuning params
 
-    # obj.target_accuracy_score = 0.4
-    # obj.kill_frequency = 0.1
+    obj.target_accuracy_score = 0.4
+    obj.kill_frequency = @kill_frequency
 
     # do the word count for real
     obj.add_compute_method(1.0) do |datum|

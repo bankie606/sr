@@ -80,7 +80,7 @@ module Sr
         result = nil
         begin
           # preemptively kill some tasks
-          raise Timeout::Error if rand() < @kill_frequency
+          raise Timeout::Error if @job_inst.kill_at_worker && rand() < @kill_frequency
           # try to do it
           result = Timeout::timeout(@timeout) do
             if block.arity == 1

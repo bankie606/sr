@@ -190,10 +190,16 @@ module Sr
             next if worker.nil?
             datum_batch = @fetchQ.removeN(5)
 
-            if datum_batch.nil? || datum_batch.empty?
+            if datum_batch.nil? || datum_batch.empty? ||
+                rand() < @job_inst.kill_frequency
               # make sure we add the worker back to the pool
               free_mutex.synchronize do
                 free << worker
+              end
+              # keep track of master killed stats
+              if !(datum_batch.nil? || datum_batch.empty?)
+                @master_kill_count ||= 0
+                @master_kill_count += 5
               end
               next
             end
@@ -259,6 +265,7 @@ module Sr
           end
           Sr.log.info("job(#{@id}) - collect complete")
         end
+        puts "Master stats: #{{ :killed => @master_kill_count }}"
       end
     end
   end

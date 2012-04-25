@@ -147,6 +147,7 @@ module Sr
         @num_collectors = nc
 
         @jobfile = jobfile
+        @job_inst = Sr::Util.eval_jobfile(jobfile)
 
         # set id
         @id = @@jobid
@@ -191,7 +192,7 @@ module Sr
             datum_batch = @fetchQ.removeN(5)
 
             if datum_batch.nil? || datum_batch.empty? ||
-                rand() < @job_inst.kill_frequency
+                (@job_inst.kill_at_master && rand() < @job_inst.kill_frequency)
               # make sure we add the worker back to the pool
               free_mutex.synchronize do
                 free << worker
@@ -228,6 +229,7 @@ module Sr
                                     Sr::MessageTypes::GET_METADATA,
                                     { :job_id => @id })
           end
+          puts "Master stats: #{{ :killed => @master_kill_count }}"
           @kill_pushT = true if free.length == @num_workers
           Sr.log.info("job(#{@id}) - compute complete")
         end
@@ -265,7 +267,6 @@ module Sr
           end
           Sr.log.info("job(#{@id}) - collect complete")
         end
-        puts "Master stats: #{{ :killed => @master_kill_count }}"
       end
     end
   end

@@ -6,7 +6,7 @@ require "base64"
 require "zlib"
 
 @num_revs = Sr::Util.send_message("localhost:7777", "num_revs", {})[:num_revs].to_i
-@num_revs = 500
+# @num_revs = 500
 @seq = 0
 
 result = Hash.new(0)

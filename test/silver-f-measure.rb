@@ -64,6 +64,7 @@ def fmeasure(silver_keys, gold_keys, h_inv, gold, len)
     #silver_words << h_inv[s]
     h_inv[s].each do |w|
       silver_words[w] = 1
+      break if silver_words.keys.length >= len
     end
     break if silver_words.keys.length >= len
   end
@@ -72,6 +73,7 @@ def fmeasure(silver_keys, gold_keys, h_inv, gold, len)
     #gold_words << gold[g]
     gold[g].each do |w|
       gold_words[w] = 1
+      break if gold_words.keys.length >= len
     end
     break if gold_words.keys.length >= len
   end

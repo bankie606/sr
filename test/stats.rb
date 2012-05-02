@@ -91,5 +91,5 @@ puts "%-5s%-10s%-10s%-10s%-10s%-10s%-10s%-10s%-10s" % ["exp", "t1 pre", "t1 reca
 end
 
 puts ""
-puts "Precision = top 100"
-puts "Precision = bottom 10000"
+puts "%-25s%5d" % ["Precision (top k)", 100]
+puts "%-25s%5d" % ["Recall (bot k)", 10000]

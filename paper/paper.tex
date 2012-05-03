@@ -110,11 +110,42 @@ Weight & Description \\ \hline
 The results of the word count job are then used in a script to compute the top 100 words. The cluster and word count job could be used in a two-stage top-k job. This script filters out SEO stopwords [stopword] to achieve more interesting results.
 
 \section{Evaluation}
-To evaluate Sr, I explore the speedup factor associated with varying the kill rate and target work level as well as the precision and recall of the word count test job.
+To evaluate Sr, I explore the precision and recall of the word count test job as well as the speedup factor associated with varying the kill rate and target work level.
+
+\subsection{Precision and Recall}
+In order for task killing to be an effective strategy for a top-k computation, the distribution of words in the corpus must be able to sustain data loss. This is the case if the distribution is long-tailed, but is not true if the distribution is uniform.
+
+\begin{figure}
+\includegraphics[width=\linewidth]{long-tail-ranks.png}
+\caption{The frequencies of words in the Wikipedia Featured Articles corpus have a long-tailed distribution.}
+\label{fig:wordDist}
+\end{figure}
+
+The distribution shown in Figure ~\ref{fig:wordDist} is long-tailed, meaning that killing tasks will impact the tail of the distribution more than the head.
+
+\subsubsection{Precision}
+Task killing should least impact the head of the word distribution. Figure ~\ref{fig:precision} shows that even with a kill rate of 0.8 and a work level of 0.4, meaning that the cluster only looks at 8\% of the words in the corpus, the results are at least 80\% accurate. Increasing the work level, which increases the fidelity of results emitted by workers, also increases the fidelity of the top 100 results.
+
+
+\begin{figure}
+\includegraphics[width=\linewidth]{top-100-precision.png}
+\caption{Number of top 100 results returned in the top-100 by the word count job}
+\label{fig:precision}
+\end{figure}
+
+\subsubsection{Word Count Job Accuracy}
+Because I am running a top-k job, I compute the $F_{0.5}$-score of the Sr results as opposed to the $F1$-score because I care more about precision of the top k than recall in the tail. Figure ~\ref{fig:fscore} shows that the $F_{0.5}$-score, or the weighted accuracy of the top-100 classifier, is always higher than the fraction of the input examined (kill rate * work level).
+
+\begin{figure}
+\includegraphics[width=\linewidth]{f-score.png}
+\caption{$F_{0.5}$-score for the top-100 word count job. I measured the $F$-score with $\beta = 0.5$ because the goal of the job is to run a top-k filter on it, meaning I care more about precision than recall.}
+\label{fig:fscore}
+\end{figure}
+
 \subsection{Speedup}
 Sr is able to achieve a speedup over a MapReduce-style computation through three mechanisms: providing multiple computation routines for the workers to choose from; varying the task kill rate; and varying the target work level, which influences the chosen frequency of computation routines per worker.
 
-Table ~\ref{table:runtime} shows the effect of varying the kill rate and work level. The row with kill rate = 0.0 and work level = 1.0 represents the perfect, “correct” execution of the word count job. The only consistent reduction in execution time is a result of increasing the kill rate. Increasing the kill rate exhibits a linear reduction in execution time as the fraction of processed data linearly decreases.
+Table ~\ref{table:runtime} shows the effect of varying the kill rate and work level. The row with kill rate = 0.0 and work level = 1.0 represents the perfect, MapReduce-style, execution of the word count job. The only consistent reduction in execution time is a result of increasing the kill rate. Increasing the kill rate exhibits a linear reduction in execution time as the fraction of processed data linearly decreases.
 
 \begin{table}
 \begin{tabular}{|l|l|l|}
@@ -136,29 +167,7 @@ Kill rate & Work level & Avg. execution time \\ \hline
 \label{table:runtime}
 \end{table}
 
-\subsection{Precision and Recall}
-In order for task killing to be an effective strategy for a top-k computation, the distribution of words in the corpus must be able to sustain data loss. This is the case if the distribution is long-tailed, but is not true if the distribution is uniform.
-
-\begin{figure}
-\includegraphics[width=\linewidth]{long-tail-ranks.png}
-\caption{Frequencies of words in the Wikipedia Featured Articles corpus}
-\label{fig:wordDist}
-\end{figure}
-
-The distribution shown in Figure ~\ref{fig:wordDist} is long-tailed, meaning that killing tasks will impact the tail of the distribution more than the head.
-
-\subsubsection{Precision}
-Task killing should least impact the head of the word distribution. Figure ~\ref{fig:precision} shows that even with a kill rate of 0.8 and a work level of 0.4, meaning that the cluster only looks at 8\% of the words in the corpus, the results are at least 80\% accurate. Increasing the work level, which increases the fidelity of results emitted by workers, also increases the fidelity of the top 100 results.
-
-
-\begin{figure}
-\includegraphics[width=\linewidth]{top-100-precision.png}
-\caption{Precision of top 100 results} 
-\label{fig:precision}
-\end{figure}
-
-\subsubsection{Test Accuracy}
-Because I am running a top k job, I compute the $F_{0.5}$-score of the Sr results as opposed to the $F1$-score because I care more about precision of the top k than recall in the tail.
+Notably, simply by killing tasks, Sr is able to achieve over a 5 times speedup compared to the perfect execution while still returning about 84 of the top-100 words.
 
 
 \section{Discussion}

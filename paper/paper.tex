@@ -5,6 +5,7 @@
 \usepackage{graphicx}
 \graphicspath{{images/}}
 \usepackage{tabularx}
+\usepackage{url}
 
 \title{Sr: Processing Data Streams and Avoiding Work}
 \author{Ryan Lopopolo\\
@@ -18,7 +19,7 @@
 \label{sec:intro}
 One of the fundamental problems MapReduce was created to solve was processing
 the growing amount of data in the world. Now with the open source Apache Hadoop
-and Pig, it is easy to process and query the terabytes of data an organization
+and Pig~\cite{piglatin}, it is easy to process and query the terabytes of data an organization
 may collect. With terabytes of data, however, it is scarcely necessary to examine
 every entry to uncover trends. Google runs PageRank on the entire Internet, but if
 it only did on half of the pages it crawls, it would likely still have a usable
@@ -44,6 +45,7 @@ an overview of related work on distributed stream processing as well as dynamic 
 approximate computations. Section~\ref{sec:design} details how I designed Sr.
 Section~\ref{sec:methodology} explains the methodology used to perform a cvase study
 using Sr. Section~\ref{sec:evaluation} evaluates the effectiveness of Sr in the case study.
+Section~\ref{sec:discussion} enumerates issues with Sr's current implementation.
 
 \section{Related Work}
 \label{sec:relwork}
@@ -94,6 +96,7 @@ type of aggregation collectors can do to online operations.
 Collectors also expose an API endpoint for accessing the results of a job. This endpoint
 can be used by another spout to chain Sr jobs together.
 \subsection{Master}
+\label{sec:master}
 There is one master node per Sr network. It has a function similar to the jobtracker in
 MapReduce. New jobs are scheduled with the master and it initializes other nodes in the
 cluster with job state. For each job, the master schedules roles among nodes in a round robin
@@ -111,6 +114,7 @@ cluster must flow through it. The master maintains two queues per job for buffer
 progress from fetchers and workers and periodically pushes this state out to workers and
 collectors, respectively.
 \subsection{Configuring a Cluster for a Job}
+\label{sec:jobfile}
 Apart from spouts, all nodes in a cluster modify their behavior based on the job they are
 running. The master must know the appropriate number of nodes to spin up; fetchers need to
 know how to talk to spouts; workers need to know how to compute results; and collectors need
@@ -216,7 +220,7 @@ Weight & Description \\ \hline
 
 The results of the word count job are then used in a script to compute the top 100 words.
 The cluster and word count job could be used in a two-stage top-k job. This script filters
-out SEO stopwords [stopword] to achieve more interesting results.
+out SEO stopwords~\cite{stopwords} to achieve more interesting results.
 
 \section{Evaluation}
 \label{sec:evaluation}
@@ -301,10 +305,54 @@ Kill rate & Work level & Average execution time [minutes] \\ \hline
 Notably, simply by killing tasks, Sr is able to achieve over a 5 times speedup compared
 to the perfect execution while still returning about 84 of the top-100 words.
 
-\section{Discussion}
+\section{Implementation Notes}
 \label{sec:discussion}
+This section describes deficiencies in the implementation of Sr used to run the case study
+in this paper and goals for the next version of the system.
 
-\bibliography{sr}{}
+\subsection{On-the-Fly Job Reconfiguration}
+The mechanism for altering execution of a job as it is running described in Section~\ref{sec:jobfile}
+is not yet implemented. Adding this feature to Sr is a matter of adding an API endpoint
+to the servers run by each role and adding a bin-script to submit the new Jobfile.
+
+\subsection{Internode Communication}
+In Section~\ref{sec:master} I mentioned design difficulties relating to the master and using HTTP
+servers for sending messages between nodes. I initially chose to use HTTP requests with POST payloads
+to send data and results between nodes because of its low barrier to entry; however, initiating many
+HTTP requests in succession is expensive. When killing jobs on worker nodes, the observed time savings
+was minimal because most of the time spent per datum involved shipping it from the master to the worker.
+
+In order to mitigate the effects of this problem, I batched individual requests into groups of 5. This
+lowered the number of connections I was initiating but it also limited the parallelism of the cluster
+and removed workers from the pool for longer periods because they had more data to process at a time.
+A killed task on the worker no longer freed it up to receive a new task immediately.
+Keeping workers removed from the pool caused the queues on the master to grow longer as the workers
+could no longer keep up with the rate the fetcher was producing data.
+
+Eventually, I introduced a configuration option to kill tasks at the master. The master then
+decides to discard a task as it is popped from the queue, before it is ever sent to a worker.
+Doing so improved the execution time of the cluster but also meant that workers no longer had
+a full idea of how accurate they were being because they never killed any tasks themselves.
+
+In order to address this problem, the master needs to keep a persistent channel open between
+it and all active nodes. Communication channels should be established when nodes come online.
+Possible solutions include writing to a socket or using a higher abstraction like AMPQ. AMPQ
+is appealing because it relieves the master from handling queues.
+
+\subsection{Node Health}
+Currently, the master does not probe nodes to ensure that they are responsive. In the case that
+a node is serving a worker role for a job, this deficiency is masked. The node will simply not
+return the HTTP request sent to it to push it some data and the worker will remain removed from
+the pool. If the node is in the role of fetcher or collector, the master will stall.
+
+All messages passed by the master to other nodes must be made non-blocking.
+
+\subsection{Job Management}
+There is no support for killing jobs or removing them from the master's data structures. The only
+way to remove a job is to kill the master and all other nodes in the cluster.
+
+
+\bibliography{paper}{}
 \bibliographystyle{plain}
 
 \end{document}

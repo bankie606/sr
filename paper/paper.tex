@@ -196,7 +196,10 @@ Wikipedia dump of the Featured Articles category. I used Wikipedia’s xml expor
 [Special:export] on January 9, 2012.
 
 To serve the data, I munged it into a YAML file containing a hash of
-\lstinline[language=Ruby]{article_id : fulltext}. To store fulltext, I base64 encoded it and
+\begin{center}
+$\texttt{article\_id}\rightarrow\texttt{fulltext}$.
+\end{center}
+To store fulltext, I base64 encoded it and
 deflated it using zlib. This requires workers to inflate and decode the fulltext before they
 can process it further. The server reads from this YAML file and returns the resulting hash as
 JSON.

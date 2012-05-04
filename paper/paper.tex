@@ -21,15 +21,17 @@ One of the fundamental problems MapReduce was created to solve was processing
 the growing amount of data in the world. Now with the open source Apache Hadoop
 and Pig~\cite{piglatin}, it is easy to process and query the terabytes of data an organization
 may collect. With terabytes of data, however, it is scarcely necessary to examine
-every entry to uncover trends. Google runs PageRank on the entire Internet, but if
+every entry to uncover trends, especially when one only cares about the most prominent
+trends or results. Google runs PageRank on the entire Internet, but if
 it only did on half of the pages it crawls, it would likely still have a usable
 index for delivering the first 5 pages of results.
 
 How does one decide which data to process then? Selctively deciding which data to
 log is problematic because it can systemically mask some of the trends one would
 try to uncover through analysis. In this paper, I explore the possibility of
-discarding data randomly and choosing to process the data I do see at differing
-fidelities in order to save work.
+discarding data randomly. On the subset of data that I do process, I explore using
+computation routines of differing fidelities to sample the data. Combining both of these
+techniques allows the cluster to avoid performing work.
 
 One of the problems with MapReduce that Google has solved with Caffeine is how to
 incorporate new data into an already analyzed task. MapReduce simply says to rerun
@@ -39,6 +41,10 @@ into chunks and continuously spawning MapReduce jobs to incorporate the new data
 A simpler way to incorporate new data is to treat data not as a constant, but as a
 stream. By processing data on demand, one avoids repeating work, can save resources
 by spinning workers up and down as necessary, and ensure results are as fresh as possible.
+
+The goal of Sr is to be a MapReduce-style framework for processing streams. Such a
+framework should include the ability to kill or discard tasks and provide serveral
+different computation routines for workers to choose among.
 
 The remainder of this paper is organized as follows. Section~\ref{sec:relwork} provides
 an overview of related work on distributed stream processing as well as dynamic and
@@ -104,7 +110,7 @@ manner to minimize the total number of outstanding roles on any one node.
 
 The master is the only well-known node in the cluster. Other nodes in the network exclusively
 communicate with the master. The master and other nodes communicate with each other by issuing
-HTTP requests to a simple server on each node. I decided to make use of a library [Sinatra.rb]
+HTTP requests to a simple server on each node. I decided to make use of a library~\cite{sinatrarb}
 providing the server functionality because there was a low barrier to getting inter-node
 communication functioning. This design choice presents some problems and will be discussed
 further in Section~\ref{sec:discussion}.
@@ -126,7 +132,7 @@ given node to provide configuration parameters or execute code on its behalf. Mo
 routines that advance the progress of an Sr job are wrappers around these Jobfile methods.
 
 Sr sends the source of the Jobfile to every node participating in the job and uses eval to
-obtain a local instance of the Jobfile class. An example jobfile can be found at [github].
+obtain a local instance of the Jobfile class. An example jobfile can be found at~\cite{github}.
 
 The use of eval to instantiate Jobfile objects and the implementation language’s (Ruby)
 ability to monkeypatch classes means that jobs can be modified on the fly just by sending
@@ -166,7 +172,7 @@ before the job starts (or updated in situ via a new Jobfile).
 \label{sec:methodology}
 The cluster I used to test Sr is a 5-node network consisting of 1 spout, 1 fetcher, 4 workers,
 1 collector, and 1 master. Roles are partitioned among nodes as shown in
-Figure~\ref{fig:clusterDiagram}. Worker nodes were XVM [SIPB] VMs provisioned with 128MB RAM each.
+Figure~\ref{fig:clusterDiagram}. Worker nodes were XVM~\cite{sipb:xvm} VMs provisioned with 128MB RAM each.
 The master, spout, fetcher, and collector ran on my laptop, a mid-2010 Macbook Air with 4GB of RAM.
 
 \begin{figure}
@@ -192,8 +198,8 @@ The job I ran was a word counter. The collector emits a hash whose keys are word
 values are the frequency that word has occurred in the test corpus.
 
 To run the job, I had to create a spout and find a source of data. For data, I acquired a
-Wikipedia dump of the Featured Articles category. I used Wikipedia’s xml exporter
-[Special:export] on January 9, 2012.
+Wikipedia dump of the Featured Articles category. I used Wikipedia’s xml
+exporter~\cite{wikipedia:pecial:export} on January 9, 2012.
 
 To serve the data, I munged it into a YAML file containing a hash of
 \begin{center}

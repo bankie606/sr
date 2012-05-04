@@ -180,8 +180,7 @@ The master, spout, fetcher, and collector ran on my laptop, a mid-2010 Macbook A
                 - | worker |
                   |--------|
 \end{verbatim}
-\caption{Topology of the test Sr cluster used in the word count case study.\\
-Each box is a single machine.}
+\caption{Topology of the test Sr cluster used in the word count case study. Each box is a single machine.}
 \label{fig:clusterDiagram}
 \end{figure}
 
@@ -231,8 +230,7 @@ if the distribution is long-tailed, but is not true if the distribution is unifo
 
 \begin{figure}
 \includegraphics[width=\linewidth]{long-tail-ranks.png}
-\caption{The frequencies of words in the Wikipedia Featured Articles corpus\\
-have a long-tailed distribution.}
+\caption{The frequencies of words in the Wikipedia Featured Articles corpus have a long-tailed distribution.}
 \label{fig:wordDist}
 \end{figure}
 
@@ -249,7 +247,7 @@ results emitted by workers, also increases the fidelity of the top 100 results.
 
 \begin{figure}
 \includegraphics[width=\linewidth]{top-100-precision.png}
-\caption{Number of top 100 results returned in the top-100 by the word count job}
+\caption{Number of top 100 results returned in the top-100 by the word count job.}
 \label{fig:precision}
 \end{figure}
 
@@ -264,9 +262,7 @@ more than the fraction of words examined.
 
 \begin{figure}
 \includegraphics[width=\linewidth]{f-score.png}
-\caption{$F_{0.5}$-score for the top-100 word count job. I measured the $F$-score with\\
-$\beta=0.5$ because the goal of the job is to run a top-k filter on it, meaning I care more\\
-about precision than recall.}
+\caption{$F_{0.5}$-score for the top-100 word count job. I measured the $F$-score with $\beta=0.5$ because the goal of the job is to run a top-k filter on it, meaning I care more about precision than recall.}
 \label{fig:fscore}
 \end{figure}
 
@@ -305,6 +301,10 @@ Kill rate & Work level & Average execution time [minutes] \\ \hline
 Notably, simply by killing tasks, Sr is able to achieve over a 5 times speedup compared
 to the perfect execution while still returning about 84 of the top-100 words.
 
+\section{Discussion}
+\label{sec:discussion}
 
+\bibliography{sr}{}
+\bibliographystyle{plain}
 
 \end{document}

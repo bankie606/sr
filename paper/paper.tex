@@ -6,7 +6,6 @@
 \graphicspath{{images/}}
 \usepackage{tabularx}
 
-
 \title{Sr: Processing Data Streams By Doing Less Work}
 \author{Ryan Lopopolo\\
 \texttt{lopopolo@mit.edu}}
@@ -16,10 +15,22 @@
 \maketitle
 
 \section{Introduction}
+\label{sec:intro}
+One of the fundamental problems MapReduce was created to solve was processing the growing amount of data in the world. Now with the open source Apache Hadoop and Pig, it is easy to process and query the terabytes of data an organization may collect. With terabytes of data, however, it is scarcely necessary to examine every entry to uncover trends. Google runs PageRank on the entire Internet, but if it only did on half of the pages it crawls, it would likely still have a usable index for delivering the first 5 pages of results.
+
+How does one decide which data to process then? Selctively deciding which data to log is problematic because it can systemically mask some of the trends one would try to uncover through analysis. In this paper, I explore the possibility of discarding data randomly and choosing to process the data I do see at differing fidelities in order to save work.
+
+One of the problems with MapReduce that Google has solved with Caffeine is how to incorporate new data into an already analyzed task. MapReduce simply says to rerun the job with the new data included. Others have solved this problem by batching data into chunks and continuously spawning MapReduce jobs to incorporate the new data.
+
+A simpler way to incorporate new data is to treat data not as a constant, but as a stream. By processing data on demand, one avoids repeating work, can save resources by spinning workers up and down as necessary, and ensure results are as fresh as possible.
+
+The remainder of this paper is organized as follows. Section ~\ref{sec:relwork} provides an overview of related work on distributed stream processing as well as dynamic and approximate computations. Section ~\ref{sec:design} details how I designed Sr. Section ~\ref{sec:methodology} explains the methodology used to perform a cvase study using Sr. Section ~\ref{sec:evaluation} evaluates the effectiveness of Sr in the case study.
 
 \section{Related Work}
+\label{sec:relwork}
 
 \section{Design}
+\label{sec:design}
 Sr is a distributed system for processing streams that can choose to kill tasks or limit the amount of work it performs per task. Its design is modular; there are five different types of nodes in an Sr cluster (spout, fetcher, worker, collector, master).
 \subsection{Spout}
 Spouts are network-connected machines that generate data for the Sr cluster to process. Examples include a machine that tails a log file or an API like the Twitter tweet stream. Fetchers depend on spouts as a source of streaming data.
@@ -40,7 +51,7 @@ Collectors also expose an API endpoint for accessing the results of a job. This 
 \subsection{Master}
 There is one master node per Sr network. It has a function similar to the jobtracker in MapReduce. New jobs are scheduled with the master and it initializes other nodes in the cluster with job state. For each job, the master schedules roles among nodes in a round robin manner to minimize the total number of outstanding roles on any one node.
 
-The master is the only well-known node in the cluster. Other nodes in the network exclusively communicate with the master. The master and other nodes communicate with each other by issuing HTTP requests to a simple server on each node. I decided to make use of a library [Sinatra.rb] providing the server functionality because there was a low barrier to getting inter-node communication functioning. This design choice presents some problems and will be discussed further in section 5.
+The master is the only well-known node in the cluster. Other nodes in the network exclusively communicate with the master. The master and other nodes communicate with each other by issuing HTTP requests to a simple server on each node. I decided to make use of a library [Sinatra.rb] providing the server functionality because there was a low barrier to getting inter-node communication functioning. This design choice presents some problems and will be discussed further in Section ~\ref{sec:discussion}.
 
 Another consequence of the master being the only well-known node is that all data in the cluster must flow through it. The master maintains two queues per job for buffering job progress from fetchers and workers and periodically pushes this state out to workers and collectors, respectively.
 \subsection{Configuring a Cluster for a Job}
@@ -65,6 +76,7 @@ A design goal of Sr is to compute meaningful results from a stream and to do so 
 These behaviors appeal to the law of large numbers. It assumes that trends will still be visible in spite of looking at only a fraction of the data. This means that the computation routines and the weights assigned to them must be adapted to fit the distribution of the data before the job starts (or updated in situ via a new Jobfile).
 
 \section{Methodology}
+\label{sec:methodology}
 The cluster I used to test Sr is a 5-node network consisting of 1 spout, 1 fetcher, 4 workers, 1 collector, and 1 master. Roles are partitioned among nodes as shown in Figure ~\ref{fig:clusterDiagram}. Worker nodes were XVM [SIPB] VMs provisioned with 128MB RAM each. The master, spout, fetcher, and collector ran on my laptop, a mid-2010 Macbook Air with 4GB of RAM.
 
 \begin{figure}
@@ -112,6 +124,7 @@ Weight & Description \\ \hline
 The results of the word count job are then used in a script to compute the top 100 words. The cluster and word count job could be used in a two-stage top-k job. This script filters out SEO stopwords [stopword] to achieve more interesting results.
 
 \section{Evaluation}
+\label{sec:evaluation}
 To evaluate Sr, I explore the precision and recall of the word count test job as well as the speedup factor associated with varying the kill rate and target work level.
 
 \subsection{Precision and Recall}

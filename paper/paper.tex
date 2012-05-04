@@ -360,6 +360,21 @@ All messages passed by the master to other nodes must be made non-blocking.
 There is no support for killing jobs or removing them from the master's data structures. The only
 way to remove a job is to kill the master and all other nodes in the cluster.
 
+\section{Conclusion}
+I have extended the ideas of approximate computations to a MapReduce-style framework and shown
+that it is feasible to tune the input parameters of a job to achieve sufficient precision and
+recall for a particular application.
+
+I have taken a different approach to streaming MapReduce by treating data not as a batch, but
+as a stream. At any given point in the execution of a job, the collectors will have accurate
+(so far as the job parameters allow) results for data seen until that point. This approach
+guarantees freshness and makes it easier to incorporate new data into an existing computation,
+yet it suffers from being limited to online aggregations.
+
+The Sr source code is open source and available at:
+\begin{center}
+  \url{https://github.com/lopopolo/sr}
+\end{center}
 
 \bibliography{paper}{}
 \bibliographystyle{plain}

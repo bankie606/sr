@@ -101,6 +101,11 @@ streams lend themselves to incremental reads and incremental processing. In addi
 updates, the Chronicle Data Model also seeks to update results incrementally without storing the
 data itself.
 
+The \emph{Data Stream Model}~\cite{Babcock:2002:MID:543613.543615} is a refinement of the Chronicle
+Data Model. It has the following properties: stream items may arrive out of order,
+streams are potentially unbounded in size, elements in the stream are discared after they are
+processed. This is the data model that Sr uses.
+
 The Aurora system~\cite{Carney:2002:MSN:1287369.1287389} introduces the concept of
 \emph{load shedding}, or compensating for
 resource overload by comparing job specific quality of service metrics with target levels.
@@ -247,7 +252,7 @@ The master, spout, fetcher, and collector ran on a mid-2010 Macbook Air laptop w
                 - | worker |
                   |--------|
 \end{verbatim}
-\caption{Topology of the test Sr cluster used in the word count case study. Each box is a single machine.}
+\caption{Topology of the test Sr cluster used in the word count case study. Each box represents a single machine.}
 \label{fig:clusterDiagram}
 \end{figure}
 

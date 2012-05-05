@@ -18,7 +18,8 @@
 \label{sec:intro}
 One of the fundamental problems MapReduce was created to solve was processing
 the growing amount of data in the world. Now with the open source Apache Hadoop
-and Pig~\cite{piglatin}, it is easy to process and query the terabytes of data an organization
+and Pig~\cite{Olston:2008:PLN:1376616.1376726}, it is easy to process and query
+the terabytes of data an organization
 may collect. With terabytes of data, however, it is scarcely necessary to examine
 every entry to uncover trends, especially when one only cares about the most prominent
 trends or results. This type of workflow lends itself naturally to top-k-style computations,
@@ -59,6 +60,50 @@ Section~\ref{sec:discussion} enumerates issues with Sr's current implementation.
 
 \section{Related Work}
 \label{sec:relwork}
+% data stream management system
+% continuous queries
+%   sr doesn't do this, instead it operates on snapshots
+%   this is how online mapreduce works
+% append only data sets == Chronicle data model
+%   views maintained incrementally without storing any chronicles (data items)
+% sequencing of streams and sliding windows
+%   sr doesn't do this
+% Aurora - load shedding based on app specific QoS
+% approximate answers
+%   baked in to Sr
+%
+
+Sr builds of previous work in the areas of MapReduce and Data Stream Management Systems.
+
+\subsection{MapReduce}
+There is a rich research field around MapReduce. This section details work related to adapting
+MapReduce to a streaming environment.
+
+The Hadoop Online Prototype~\cite{Condie:EECS-2009-136} adds streaming to the MapReduce framework
+by removing the materialize phase between mappers and reducers and between phases of a
+MapReduce pipeline. Results are streamed from mappers to reducers as they become available.
+At any given point, each reducer maintains an in-progress snapshot of the MapReduce job's
+progress up to that point. This removes the synchronization barriers inherient in MapReduce
+and allows incremental progress to be observed.
+
+This approach is in contrast to the continuous query approach taken by many other streaming
+systems.
+
+\subsection{Data Stream Management Systems}
+In their overview on data stream projects~\cite{Babcock:2002:MID:543613.543615},
+a new class of data streaming applications
+called \emph{Data Stream Management Systems} (\emph{DSMSes}) are discussed. Sr is a type of DSMS that
+includes some properties found in other systems.
+
+The \emph{Chronicle Data Model}~\cite{Jagadish:1995:VMI:212433.220201} describes an
+append-only stream of tuples. Such
+streams lend themselves to incremental reads and incremental processing. In addition to incremental
+updates, the Chronicle Data Model also seeks to update results incrementally without storing the
+data itself.
+
+The Aurora system~\cite{Carney:2002:MSN:1287369.1287389} introduces the concept of
+\emph{load shedding}, or compensating for
+resource overload by comparing job specific quality of service metrics with target levels.
 
 \section{Design}
 \label{sec:design}

@@ -22,29 +22,34 @@ the growing amount of data in the world. Now with the open source Apache Hadoop
 and Pig~\cite{piglatin}, it is easy to process and query the terabytes of data an organization
 may collect. With terabytes of data, however, it is scarcely necessary to examine
 every entry to uncover trends, especially when one only cares about the most prominent
-trends or results. Google runs PageRank on the entire Internet, but if
-it only did on half of the pages it crawls, it would likely still have a usable
-index for delivering the first 5 pages of results.
+trends or results. This type of workflow lends itself naturally to top-k-style computations,
+data sampling tasks, and other cases where perfect-fidelity results are not required.
+%Google runs PageRank on the entire Internet, but if
+%it only did on half of the pages it crawls, it would likely still have a usable
+%index for delivering the first 5 pages of results.
 
 How does one decide which data to process then? Selctively deciding which data to
 log is problematic because it can systemically mask some of the trends one would
 try to uncover through analysis. In this paper, I explore the possibility of
-discarding data randomly. On the subset of data that I do process, I explore using
+discarding data randomly while trying to maintain a target accuracy level.
+On the subset of data that I do process, I explore using
 computation routines of differing fidelities to sample the data. Combining both of these
 techniques allows the cluster to avoid performing work.
 
-One of the problems with MapReduce that Google has solved with Caffeine is how to
+One of the problems with MapReduce is how to
 incorporate new data into an already analyzed task. MapReduce simply says to rerun
 the job with the new data included. Others have solved this problem by batching data
 into chunks and continuously spawning MapReduce jobs to incorporate the new data.
 
 A simpler way to incorporate new data is to treat data not as a constant, but as a
-stream. By processing data on demand, one avoids repeating work, can save resources
-by spinning workers up and down as necessary, and ensure results are as fresh as possible.
+stream. By processing data on demand, one avoids repeating work involved in reprocessing
+data, can save resources
+by spinning workers up and down as necessary, and ensure results are as fresh as possible
+by incorporating data into the result as soon as it arrives.
 
-The goal of Sr is to be a MapReduce-style framework for processing streams. Such a
-framework should include the ability to kill or discard tasks and provide serveral
-different computation routines for workers to choose among.
+The goal of Sr is to provide a MapReduce-style framework for processing streams. Such a
+framework should include the ability to kill or discard tasks and be capable of
+providing workers with serveral different computation routines to choose among.
 
 The remainder of this paper is organized as follows. Section~\ref{sec:relwork} provides
 an overview of related work on distributed stream processing as well as dynamic and
@@ -59,10 +64,10 @@ Section~\ref{sec:discussion} enumerates issues with Sr's current implementation.
 \section{Design}
 \label{sec:design}
 Sr is a distributed system for processing streams that can choose to kill tasks or
-limit the amount of work it performs per task. Its design is modular; there are five
-different types of nodes in an Sr cluster (spout, fetcher, worker, collector, master).
+limit the amount of work it performs per task. Its design is modular and there are five
+different types of nodes in an Sr cluster: spout, fetcher, worker, collector, master.
 \subsection{Spout}
-Spouts are network-connected machines that generate data for the Sr cluster to process.
+Spouts are network-connected machines that generate data for an Sr cluster to process.
 Examples include a machine that tails a log file or an API like the Twitter tweet
 stream. Fetchers depend on spouts as a source of streaming data.
 \subsection{Fetcher}
@@ -72,10 +77,10 @@ the fetching task is over.
 \subsection{Worker}
 Workers perform processing on data provided by fetchers. They are similar to mappers
 in the MapReduce framework. Each worker receives a fraction of the total input data
-and each worker’s tasks are independent of other workers’.
+and each worker's tasks are independent of other workers'.
 
 Workers are responsible for fulfilling the main design goals of Sr. Workers may choose
-to kill a task preemptively or if it does not complete before a timeout. Additionally,
+to kill a task preemptively or greedily if it does not complete before a timeout. Additionally,
 workers may choose among a variety of routines for performing computation on a datum.
 Routines are ranked on a [0,1] scale based on the estimated fraction of total work it
 requires.
@@ -84,20 +89,25 @@ As it runs, a worker maintains an internal metric that estimates the fraction of
 it has performed over all data it has seen. Workers use this metric when choosing which
 computation routine to run for a datum. A worker will choose the lowest ranked routine
 such that its estimated fraction of work is above a configured threshold.
+The total work estimator is used as a proxy for accuracy when a worker updates
+this metric. This metric also takes into account the number of tasks it has killed
+for any reason.
 
-Because one of Sr’s goals is to process (potentially infinite) streams, workers do not
+Because one of Sr's goals is to process (potentially infinite) streams, workers do not
 save their progress to disk and are forgetful; once the master queries a worker for its
 progress and the worker successfully returns it, the worker clears all of its state and
 continues processing. As a consequence, workers are easy to add or remove from the worker
-pool because they don’t need to be initialized with long-term job state. Additionally, as
+pool because they don't need to be initialized with long-term job state. Additionally, as
 long as the master polls workers frequently enough, when a worker fails, only a small
 fraction of the total work is lost. The master queries workers every 100ms by default.
 \subsection{Collector}
-Collector nodes aggregate the results of all workers. Each collector acts as a reducer
+Collector nodes aggregate the results of all workers. Each collector acts as a reducer would
 in the MapReduce framework if MapReduce used a single reducer for all of the mappers.
 Collectors differ from MapReduce reducers in that they receive their data piecewise, as it
 is produced from workers as opposed to after all mappers have completed. This limits the
-type of aggregation collectors can do to online operations.
+types of stateless aggregation collectors can do to online operations. (Of course, a collector
+can choose to retain copies of individual worker results and re-reduce them each time more
+results are receieved, but this is not in the spirit of the framework.)
 
 Collectors also expose an API endpoint for accessing the results of a job. This endpoint
 can be used by another spout to chain Sr jobs together.
@@ -126,7 +136,7 @@ running. The master must know the appropriate number of nodes to spin up; fetche
 know how to talk to spouts; workers need to know how to compute results; and collectors need
 to know how to combine batched worker results.
 
-Sr accomplishes this configuration with a Jobfile. Jobfiles are instances of a special class
+Sr achieves this configuration with a Jobfile. Jobfiles are instances of a special class
 provided by the Sr framework. This class exposes several methods that can be invoked by a
 given node to provide configuration parameters or execute code on its behalf. Most of the
 routines that advance the progress of an Sr job are wrappers around these Jobfile methods.
@@ -134,27 +144,30 @@ routines that advance the progress of an Sr job are wrappers around these Jobfil
 Sr sends the source of the Jobfile to every node participating in the job and uses eval to
 obtain a local instance of the Jobfile class. An example jobfile can be found at~\cite{github}.
 
-The use of eval to instantiate Jobfile objects and the implementation language’s (Ruby)
+The use of eval to instantiate Jobfile objects and the implementation language's (Ruby)
 ability to monkeypatch classes means that jobs can be modified on the fly just by sending
 an updated Jobfile to job participants. For example, a job can be made lower fidelity in
-the face of an impending time constraint or higher fidelity if more workers are added to
-the cluster.
+the face of an impending time constraint, higher fidelity if more workers are added to
+the cluster, or gracefully killing fetchers which allows the job to end after all of the
+various job queues are empty.
 \subsection{Fault Tolerance}
 Sr can sustain the failure of any node other than the master. Because the master is responsible
 for shuffling data between fetchers, workers, and collectors, a job cannot make progress without
 the master.
 
 Fetchers can fail. The only consequence of fetcher failure is that some of the input stream is
-lost forever. Since streams contain much data and are likely stored permanently elsewhere on disk
+lost forever. Since streams contain much data and are possibly stored permanently elsewhere on disk
 Sr does not attempt to recover this data.
 
 Worker failures may entail some lost work. Having the master poll each worker frequently for its
 progress mitigates the consequences of worker failure. For jobs that run for minutes or hours,
-100ms of lost work is << 0.1\% of the total. Sr can simply treat these lost tasks as preemptively
+100ms of lost work is $\ll0.1\%$ of the total. Sr can simply treat these lost tasks as preemptively
 killed, which is already expected by the cluster.
 
 Each collector is an exact replica of all others. Collector failure does not impact correctness of
-the results delivered by any other collector.
+the results delivered by any other collector. If no collectors are online, the data meant for them
+sits in a queue on the master. Bringing another collector online will allow these and future results
+to be aggregated.
 \subsection{Killing Tasks and Working Less}
 A design goal of Sr is to compute meaningful results from a stream and to do so while not
 processing every datum one-to-one. Sr achieves this goal in two different ways. First, workers
@@ -170,10 +183,10 @@ before the job starts (or updated in situ via a new Jobfile).
 
 \section{Methodology}
 \label{sec:methodology}
-The cluster I used to test Sr is a 5-node network consisting of 1 spout, 1 fetcher, 4 workers,
-1 collector, and 1 master. Roles are partitioned among nodes as shown in
-Figure~\ref{fig:clusterDiagram}. Worker nodes were XVM~\cite{sipb:xvm} VMs provisioned with 128MB RAM each.
-The master, spout, fetcher, and collector ran on my laptop, a mid-2010 Macbook Air with 4GB of RAM.
+The cluster I used to test Sr is a 5-node network consisting of~1 spout,~1 fetcher,~4 workers,~1
+collector, and~1 master. Roles were partitioned among nodes as shown in
+Figure~\ref{fig:clusterDiagram}. Worker nodes were XVM~\cite{sipb:xvm} VMs provisioned with~128MB RAM each.
+The master, spout, fetcher, and collector ran on a mid-2010 Macbook Air laptop with~4GB of RAM.
 
 \begin{figure}
 \begin{verbatim}
@@ -195,11 +208,11 @@ The master, spout, fetcher, and collector ran on my laptop, a mid-2010 Macbook A
 \end{figure}
 
 The job I ran was a word counter. The collector emits a hash whose keys are words and whose
-values are the frequency that word has occurred in the test corpus.
+values are the frequency the key occurred in the test corpus.
 
 To run the job, I had to create a spout and find a source of data. For data, I acquired a
-Wikipedia dump of the Featured Articles category. I used Wikipedia’s xml
-exporter~\cite{wikipedia:special:export} on January 9, 2012.
+Wikipedia dump of the Featured Articles category. I used Wikipedia's xml
+exporter~\cite{wikipedia:special:export} on January~9,~2012.
 
 To serve the data, I munged it into a YAML file containing a hash of
 \begin{center}
@@ -213,7 +226,7 @@ JSON.
 The fetcher communicates to the spout by requesting sequential article ids until it has fetched
 every article.
 
-Workers are initialized with the 3 computation routines shown in Table~\ref{table:workerTasks}.
+Workers are initialized with the~3 computation routines shown in Table~\ref{table:workerTasks}.
 
 \begin{table}
 \begin{tabularx}{\linewidth}{|c|X|}
@@ -223,11 +236,11 @@ Weight & Description \\ \hline
 0.25 & Deflate and decode fulltext and count words in approximately a quarter of fulltext \\ \hline
 0.1 & Return the results of the last computation from a cache \\ \hline
 \end{tabularx}
-\caption{Computation routines used by Sr workers}
+\caption{Computation routines used by Sr workers.}
 \label{table:workerTasks}
 \end{table}
 
-The results of the word count job are then used in a script to compute the top 100 words.
+The results of the word count job were then used in a script to compute the top~100 words.
 The cluster and word count job could be used in a two-stage top-k job. This script filters
 out SEO stopwords~\cite{stopwords} to achieve more interesting results.
 
@@ -247,20 +260,20 @@ if the distribution is long-tailed, but is not true if the distribution is unifo
 \label{fig:wordDist}
 \end{figure}
 
-The distribution shown in Figure~\ref{fig:wordDist} is long-tailed, meaning that killing
+The distribution shown in Figure~\ref{fig:wordDist} is long-tailed. This implies that killing
 tasks will impact the tail of the distribution more than the head.
 
 \subsubsection{Precision}
 Task killing should least impact the head of the word distribution.
-Figure~\ref{fig:precision} shows that even with a kill rate of 0.8 and a work level of
-0.4, meaning that the cluster only looks at 8\% of the words in the corpus, the results
-are at least 80\% accurate. Increasing the work level, which increases the fidelity of
-results emitted by workers, also increases the fidelity of the top 100 results.
+Figure~\ref{fig:precision} shows that even with a kill rate of~0.8 and a work level of~0.4,
+meaning that the cluster only looks at 8\% of the words in the corpus, the results
+are at least~80\% accurate. Increasing the work level, which increases the fidelity of
+results emitted by workers, also increases the fidelity of the top~100 results.
 
 
 \begin{figure}
 \includegraphics[width=\linewidth]{top-100-precision.png}
-\caption{Number of top 100 results returned in the top-100 by the word count job.}
+\caption{Fraction of the top~100 results returned in the top-100 by the word count job.}
 \label{fig:precision}
 \end{figure}
 
@@ -269,8 +282,8 @@ Because I am running a top-k job, I compute the $F_{0.5}$-score of the Sr result
 opposed to the $F1$-score because I care more about precision of the top k than recall
 in the tail. Figure~\ref{fig:fscore} shows that the $F_{0.5}$-score, or the weighted
 accuracy of the top-100 classifier, is always higher than the fraction of the input
-examined (kill rate * work level). Setting the work level to 0.4 nets a greater increase
-in job accuracy versus fraction of words examined, with accuracy approximately 1.75 times
+examined (kill rate * work level). Setting the work level to~0.4 nets a greater increase
+in job accuracy versus fraction of words examined, with accuracy approximately~1.75 times
 more than the fraction of words examined.
 
 \begin{figure}
@@ -286,13 +299,13 @@ rate; and varying the target work level, which influences the chosen frequency o
 routines per worker.
 
 Table~\ref{table:runtime} shows the effect of varying the kill rate and work level. The row
-with kill~rate~=~0.0 and work~level~=~1.0 represents the perfect, MapReduce-style, execution
+with kill~rate~$=0.0$ and work~level~$=1.0$ represents the perfect, MapReduce-style, execution
 of the word count job. The only consistent reduction in execution time is a result of
 increasing the kill rate. Increasing the kill rate exhibits a linear reduction in execution
 time as the fraction of processed data linearly decreases.
 
 \begin{table}
-\begin{tabularx}{\linewidth}{|X|X|X|}
+\begin{tabularx}{\linewidth}{|c|c|X|}
 \hline
 Kill rate & Work level & Average execution time [minutes] \\ \hline
 0.0 & 1.0 & 11:35.5 \\ \hline
@@ -311,8 +324,8 @@ Kill rate & Work level & Average execution time [minutes] \\ \hline
 \label{table:runtime}
 \end{table}
 
-Notably, simply by killing tasks, Sr is able to achieve over a 5 times speedup compared
-to the perfect execution while still returning about 84 of the top-100 words.
+Notably, simply by killing tasks, Sr is able to achieve over a~5 times speedup compared
+to the perfect execution while still returning about~84 of the top~100 words.
 
 \section{Implementation Notes}
 \label{sec:discussion}
@@ -326,12 +339,12 @@ to the servers run by each role and adding a bin-script to submit the new Jobfil
 
 \subsection{Internode Communication}
 In Section~\ref{sec:master} I mentioned design difficulties relating to the master and using HTTP
-servers for sending messages between nodes. I initially chose to use HTTP requests with POST payloads
+requests for sending messages between nodes. I initially chose to use HTTP requests with POST payloads
 to send data and results between nodes because of its low barrier to entry; however, initiating many
 HTTP requests in succession is expensive. When killing jobs on worker nodes, the observed time savings
 was minimal because most of the time spent per datum involved shipping it from the master to the worker.
 
-In order to mitigate the effects of this problem, I batched individual requests into groups of 5. This
+In order to mitigate the effects of this problem, I batched individual requests into groups of~5. This
 lowered the number of connections I was initiating but it also limited the parallelism of the cluster
 and removed workers from the pool for longer periods because they had more data to process at a time.
 A killed task on the worker no longer freed it up to receive a new task immediately.
@@ -345,8 +358,8 @@ a full idea of how accurate they were being because they never killed any tasks 
 
 In order to address this problem, the master needs to keep a persistent channel open between
 it and all active nodes. Communication channels should be established when nodes come online.
-Possible solutions include writing to a socket or using a higher abstraction like AMPQ. AMPQ
-is appealing because it relieves the master from handling queues.
+Possible solutions include writing to a socket or using a higher abstraction like AMPQ\@.
+AMPQ is appealing because it also relieves the master from handling queues.
 
 \subsection{Node Health}
 Currently, the master does not probe nodes to ensure that they are responsive. In the case that

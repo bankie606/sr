@@ -7,8 +7,9 @@
 \usepackage{tabularx}
 \usepackage{url}
 
-\title{Sr: Processing Data Streams and Avoiding Work}
+\title{StreamReduce: Processing Data Streams\\and Avoiding Work}
 \author{Ryan Lopopolo\\
+Massachusetts Institute of Technology\\
 \texttt{lopopolo@mit.edu}}
 
 \begin{document}
@@ -47,16 +48,16 @@ data, can save resources
 by spinning workers up and down as necessary, and ensure results are as fresh as possible
 by incorporating data into the result as soon as it arrives.
 
-The goal of Sr is to provide a MapReduce-style framework for processing streams. Such a
+The goal of StreamReduce is to provide a MapReduce-style framework for processing streams. Such a
 framework should include the ability to kill or discard tasks and be capable of
 providing workers with serveral different computation routines to choose among.
 
 The remainder of this paper is organized as follows. Section~\ref{sec:relwork} provides
 an overview of related work on distributed stream processing as well as dynamic and
-approximate computations. Section~\ref{sec:design} details how I designed Sr.
+approximate computations. Section~\ref{sec:design} details how I designed StreamReduce.
 Section~\ref{sec:methodology} explains the methodology used to perform a cvase study
-using Sr. Section~\ref{sec:evaluation} evaluates the effectiveness of Sr in the case study.
-Section~\ref{sec:discussion} enumerates issues with Sr's current implementation.
+using StreamReduce. Section~\ref{sec:evaluation} evaluates the effectiveness of StreamReduce in the case study.
+Section~\ref{sec:discussion} enumerates issues with StreamReduce's current implementation.
 
 \section{Related Work}
 \label{sec:relwork}
@@ -70,10 +71,10 @@ Section~\ref{sec:discussion} enumerates issues with Sr's current implementation.
 %   sr doesn't do this
 % Aurora - load shedding based on app specific QoS
 % approximate answers
-%   baked in to Sr
+%   baked in to StreamReduce
 %
 
-Sr builds of previous work in the areas of MapReduce and Data Stream Management Systems.
+StreamReduce builds of previous work in the areas of MapReduce and Data Stream Management Systems.
 
 \subsection{MapReduce}
 There is a rich research field around MapReduce. This section details work related to adapting
@@ -92,7 +93,7 @@ systems.
 \subsection{Data Stream Management Systems}
 In their overview on data stream projects~\cite{Babcock:2002:MID:543613.543615},
 a new class of data streaming applications
-called \emph{Data Stream Management Systems} (\emph{DSMSes}) are discussed. Sr is a type of DSMS that
+called \emph{Data Stream Management Systems} (\emph{DSMSes}) are discussed. StreamReduce is a type of DSMS that
 includes some properties found in other systems.
 
 The \emph{Chronicle Data Model}~\cite{Jagadish:1995:VMI:212433.220201} describes an
@@ -104,7 +105,7 @@ data itself.
 The \emph{Data Stream Model}~\cite{Babcock:2002:MID:543613.543615} is a refinement of the Chronicle
 Data Model. It has the following properties: stream items may arrive out of order,
 streams are potentially unbounded in size, elements in the stream are discared after they are
-processed. This is the data model that Sr uses.
+processed. This is the data model that StreamReduce uses.
 
 The Aurora system~\cite{Carney:2002:MSN:1287369.1287389} introduces the concept of
 \emph{load shedding}, or compensating for
@@ -112,11 +113,11 @@ resource overload by comparing job specific quality of service metrics with targ
 
 \section{Design}
 \label{sec:design}
-Sr is a distributed system for processing streams that can choose to kill tasks or
+StreamReduce is a distributed system for processing streams that can choose to kill tasks or
 limit the amount of work it performs per task. Its design is modular and there are five
-different types of nodes in an Sr cluster: spout, fetcher, worker, collector, master.
+different types of nodes in an StreamReduce cluster: spout, fetcher, worker, collector, master.
 \subsection{Spout}
-Spouts are network-connected machines that generate data for an Sr cluster to process.
+Spouts are network-connected machines that generate data for an StreamReduce cluster to process.
 Examples include a machine that tails a log file or an API like the Twitter tweet
 stream. Fetchers depend on spouts as a source of streaming data.
 \subsection{Fetcher}
@@ -128,7 +129,7 @@ Workers perform processing on data provided by fetchers. They are similar to map
 in the MapReduce framework. Each worker receives a fraction of the total input data
 and each worker's tasks are independent of other workers'.
 
-Workers are responsible for fulfilling the main design goals of Sr. Workers may choose
+Workers are responsible for fulfilling the main design goals of StreamReduce. Workers may choose
 to kill a task preemptively or greedily if it does not complete before a timeout. Additionally,
 workers may choose among a variety of routines for performing computation on a datum.
 Routines are ranked on a [0,1] scale based on the estimated fraction of total work it
@@ -142,7 +143,7 @@ The total work estimator is used as a proxy for accuracy when a worker updates
 this metric. This metric also takes into account the number of tasks it has killed
 for any reason.
 
-Because one of Sr's goals is to process (potentially infinite) streams, workers do not
+Because one of StreamReduce's goals is to process (potentially infinite) streams, workers do not
 save their progress to disk and are forgetful; once the master queries a worker for its
 progress and the worker successfully returns it, the worker clears all of its state and
 continues processing. As a consequence, workers are easy to add or remove from the worker
@@ -159,10 +160,10 @@ can choose to retain copies of individual worker results and re-reduce them each
 results are receieved, but this is not in the spirit of the framework.)
 
 Collectors also expose an API endpoint for accessing the results of a job. This endpoint
-can be used by another spout to chain Sr jobs together.
+can be used by another spout to chain StreamReduce jobs together.
 \subsection{Master}
 \label{sec:master}
-There is one master node per Sr network. It has a function similar to the jobtracker in
+There is one master node per StreamReduce network. It has a function similar to the jobtracker in
 MapReduce. New jobs are scheduled with the master and it initializes other nodes in the
 cluster with job state. For each job, the master schedules roles among nodes in a round robin
 manner to minimize the total number of outstanding roles on any one node.
@@ -185,12 +186,12 @@ running. The master must know the appropriate number of nodes to spin up; fetche
 know how to talk to spouts; workers need to know how to compute results; and collectors need
 to know how to combine batched worker results.
 
-Sr achieves this configuration with a Jobfile. Jobfiles are instances of a special class
-provided by the Sr framework. This class exposes several methods that can be invoked by a
+StreamReduce achieves this configuration with a Jobfile. Jobfiles are instances of a special class
+provided by the StreamReduce framework. This class exposes several methods that can be invoked by a
 given node to provide configuration parameters or execute code on its behalf. Most of the
-routines that advance the progress of an Sr job are wrappers around these Jobfile methods.
+routines that advance the progress of an StreamReduce job are wrappers around these Jobfile methods.
 
-Sr sends the source of the Jobfile to every node participating in the job and uses eval to
+StreamReduce sends the source of the Jobfile to every node participating in the job and uses eval to
 obtain a local instance of the Jobfile class. An example jobfile can be found at~\cite{github}.
 
 The use of eval to instantiate Jobfile objects and the implementation language's (Ruby)
@@ -200,17 +201,17 @@ the face of an impending time constraint, higher fidelity if more workers are ad
 the cluster, or gracefully killing fetchers which allows the job to end after all of the
 various job queues are empty.
 \subsection{Fault Tolerance}
-Sr can sustain the failure of any node other than the master. Because the master is responsible
+StreamReduce can sustain the failure of any node other than the master. Because the master is responsible
 for shuffling data between fetchers, workers, and collectors, a job cannot make progress without
 the master.
 
 Fetchers can fail. The only consequence of fetcher failure is that some of the input stream is
 lost forever. Since streams contain much data and are possibly stored permanently elsewhere on disk
-Sr does not attempt to recover this data.
+StreamReduce does not attempt to recover this data.
 
 Worker failures may entail some lost work. Having the master poll each worker frequently for its
 progress mitigates the consequences of worker failure. For jobs that run for minutes or hours,
-100ms of lost work is $\ll0.1\%$ of the total. Sr can simply treat these lost tasks as preemptively
+100ms of lost work is $\ll0.1\%$ of the total. StreamReduce can simply treat these lost tasks as preemptively
 killed, which is already expected by the cluster.
 
 Each collector is an exact replica of all others. Collector failure does not impact correctness of
@@ -218,8 +219,8 @@ the results delivered by any other collector. If no collectors are online, the d
 sits in a queue on the master. Bringing another collector online will allow these and future results
 to be aggregated.
 \subsection{Killing Tasks and Working Less}
-A design goal of Sr is to compute meaningful results from a stream and to do so while not
-processing every datum one-to-one. Sr achieves this goal in two different ways. First, workers
+A design goal of StreamReduce is to compute meaningful results from a stream and to do so while not
+processing every datum one-to-one. StreamReduce achieves this goal in two different ways. First, workers
 may kill tasks preemptively to avoid the time and resource costs associated with processing
 that task. Second, workers rely on the Jobfile to provide them with several different
 computation routines of differing fidelities that perform a fraction of the total work on a
@@ -232,7 +233,7 @@ before the job starts (or updated in situ via a new Jobfile).
 
 \section{Methodology}
 \label{sec:methodology}
-The cluster I used to test Sr is a 5-node network consisting of~1 spout,~1 fetcher,~4 workers,~1
+The cluster I used to test StreamReduce is a 5-node network consisting of~1 spout,~1 fetcher,~4 workers,~1
 collector, and~1 master. Roles were partitioned among nodes as shown in
 Figure~\ref{fig:clusterDiagram}. Worker nodes were XVM~\cite{sipb:xvm} VMs provisioned with~128MB RAM each.
 The master, spout, fetcher, and collector ran on a mid-2010 Macbook Air laptop with~4GB of RAM.
@@ -252,7 +253,7 @@ The master, spout, fetcher, and collector ran on a mid-2010 Macbook Air laptop w
                 - | worker |
                   |--------|
 \end{verbatim}
-\caption{Topology of the test Sr cluster used in the word count case study. Each box represents a single machine.}
+\caption{Topology of the test StreamReduce cluster used in the word count case study. Each box represents a single machine.}
 \label{fig:clusterDiagram}
 \end{figure}
 
@@ -285,7 +286,7 @@ Weight & Description \\ \hline
 0.25 & Deflate and decode fulltext and count words in approximately a quarter of fulltext \\ \hline
 0.1 & Return the results of the last computation from a cache \\ \hline
 \end{tabularx}
-\caption{Computation routines used by Sr workers.}
+\caption{Computation routines used by StreamReduce workers.}
 \label{table:workerTasks}
 \end{table}
 
@@ -295,7 +296,7 @@ out SEO stopwords~\cite{stopwords} to achieve more interesting results.
 
 \section{Evaluation}
 \label{sec:evaluation}
-To evaluate Sr, I explore the precision and recall of the word count test job as well as the
+To evaluate StreamReduce, I explore the precision and recall of the word count test job as well as the
 speedup factor associated with varying the kill rate and target work level.
 
 \subsection{Precision and Recall}
@@ -327,7 +328,7 @@ results emitted by workers, also increases the fidelity of the top~100 results.
 \end{figure}
 
 \subsubsection{Word Count Job Accuracy}
-Because I am running a top-k job, I compute the $F_{0.5}$-score of the Sr results as
+Because I am running a top-k job, I compute the $F_{0.5}$-score of the StreamReduce results as
 opposed to the $F1$-score because I care more about precision of the top k than recall
 in the tail. Figure~\ref{fig:fscore} shows that the $F_{0.5}$-score, or the weighted
 accuracy of the top-100 classifier, is always higher than the fraction of the input
@@ -342,7 +343,7 @@ more than the fraction of words examined.
 \end{figure}
 
 \subsection{Speedup}
-Sr is able to achieve a speedup over a MapReduce-style computation through three mechanisms:
+StreamReduce is able to achieve a speedup over a MapReduce-style computation through three mechanisms:
 providing multiple computation routines for the workers to choose from; varying the task kill
 rate; and varying the target work level, which influences the chosen frequency of computation
 routines per worker.
@@ -373,17 +374,17 @@ Kill rate & Work level & Average execution time [minutes] \\ \hline
 \label{table:runtime}
 \end{table}
 
-Notably, simply by killing tasks, Sr is able to achieve over a~5 times speedup compared
+Notably, simply by killing tasks, StreamReduce is able to achieve over a~5 times speedup compared
 to the perfect execution while still returning about~84 of the top~100 words.
 
 \section{Implementation Notes}
 \label{sec:discussion}
-This section describes deficiencies in the implementation of Sr used to run the case study
+This section describes deficiencies in the implementation of StreamReduce used to run the case study
 in this paper and goals for the next version of the system.
 
 \subsection{On-the-Fly Job Reconfiguration}
 The mechanism for altering execution of a job as it is running described in Section~\ref{sec:jobfile}
-is not yet implemented. Adding this feature to Sr is a matter of adding an API endpoint
+is not yet implemented. Adding this feature to StreamReduce is a matter of adding an API endpoint
 to the servers run by each role and adding a bin-script to submit the new Jobfile.
 
 \subsection{Internode Communication}
@@ -433,7 +434,7 @@ as a stream. At any given point in the execution of a job, the collectors will h
 guarantees freshness and makes it easier to incorporate new data into an existing computation,
 yet it suffers from being limited to online aggregations.
 
-The Sr source code is open source and available at:
+The StreamReduce source code is open source and available at:
 \begin{center}
   \url{https://github.com/lopopolo/sr}
 \end{center}

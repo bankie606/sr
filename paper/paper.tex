@@ -133,6 +133,12 @@ handle load spikes. Combined with Aurora's load shedding, peak load provisioning
 be used to create a DSMS that uses less resources in both the normal and peak load
 states.
 
+Accuracy-aware transformations~\cite{Zhu:2012:RAP:2103656.2103710} are a class of transformations
+that alter a computation according to a set of probabilstic weights and an accuracy
+target such that the computation performs more efficiently. StreamReduce uses the subclass
+of transformations called \emph{substitution transformations} in worker nodes to adjust
+the runtime characteristics of per-datum computation.
+
 \section{Design}
 \label{sec:design}
 StreamReduce is a distributed system for processing streams that can choose to kill tasks or

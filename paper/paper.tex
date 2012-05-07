@@ -76,7 +76,8 @@ Section~\ref{sec:discussion} enumerates issues with StreamReduce's current imple
 %   baked in to StreamReduce
 %
 
-StreamReduce builds of previous work in the areas of MapReduce and Data Stream Management Systems.
+StreamReduce builds of previous work in the areas of MapReduce, Data Stream Management Systems,
+and approximation algorithms.
 
 \subsection{MapReduce}
 There is a rich research field around MapReduce. This section details work related to adapting
@@ -114,6 +115,23 @@ The Aurora system~\cite{Carney:2002:MSN:1287369.1287389} introduces the concept 
 resource overload by comparing job specific quality of service metrics with target levels.
 StreamReduce aims to incorporate load shedding to dynamically tune jobs in the face of
 impending time and resource constraints.
+
+\subsection{Approximation Algorithms}
+An alternative to load shedding to cope with high stream throughput is to perform approximate
+computations on stream data.
+
+Dynamic Knobs~\cite{Hoffmann:2011:DKR:1950365.1950390} describes a mechanism to explore the
+accuracy-performance tradeoff space to adjust dynamically adjust program tuning parameters
+to changes in the execution environment. This allows programs to do things such as
+utilize more resources if they become available, use less power if power rates spike,
+or use less accurate computations in the face of an impending time constraint.
+
+The most important piece Dyanmic Knobs offers to the DSMS space is dynamic
+\emph{peak load provisioning}. Their system can adjust downward the amount of resources,
+machines, etc. required for normal load and quickly adjust these levels back up to
+handle load spikes. Combined with Aurora's load shedding, peak load provisioning can
+be used to create a DSMS that uses less resources in both the normal and peak load
+states.
 
 \section{Design}
 \label{sec:design}

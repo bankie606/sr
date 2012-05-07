@@ -40,12 +40,14 @@ techniques allows the cluster to avoid performing work.
 One of the problems with MapReduce is how to
 incorporate new data into an already analyzed task. MapReduce simply says to rerun
 the job with the new data included. Others have solved this problem by batching data
-into chunks and continuously spawning MapReduce jobs to incorporate the new data.
+into chunks and continuously spawning MapReduce jobs to incorporate the new data
+and incrementally storing updates in an external database instead of relying on
+the file system for enforcing the synchronization barrier.
 
 A simpler way to incorporate new data is to treat data not as a constant, but as a
 stream. By processing data on demand, one avoids repeating work involved in reprocessing
 data, can save resources
-by spinning workers up and down as necessary, and ensure results are as fresh as possible
+by spinning workers up and down as necessary, and ensures results are as fresh as possible
 by incorporating data into the result as soon as it arrives.
 
 The goal of StreamReduce is to provide a MapReduce-style framework for processing streams. Such a
@@ -55,7 +57,7 @@ providing workers with serveral different computation routines to choose among.
 The remainder of this paper is organized as follows. Section~\ref{sec:relwork} provides
 an overview of related work on distributed stream processing as well as dynamic and
 approximate computations. Section~\ref{sec:design} details how I designed StreamReduce.
-Section~\ref{sec:methodology} explains the methodology used to perform a cvase study
+Section~\ref{sec:methodology} explains the methodology used to perform a case study
 using StreamReduce. Section~\ref{sec:evaluation} evaluates the effectiveness of StreamReduce in the case study.
 Section~\ref{sec:discussion} enumerates issues with StreamReduce's current implementation.
 
@@ -93,8 +95,8 @@ systems.
 \subsection{Data Stream Management Systems}
 In their overview on data stream projects~\cite{Babcock:2002:MID:543613.543615},
 a new class of data streaming applications
-called \emph{Data Stream Management Systems} (\emph{DSMSes}) are discussed. StreamReduce is a type of DSMS that
-includes some properties found in other systems.
+called \emph{Data Stream Management Systems} (\emph{DSMS}es) is discussed.
+StreamReduce is a type of DSMS that includes some properties found in other systems.
 
 The \emph{Chronicle Data Model}~\cite{Jagadish:1995:VMI:212433.220201} describes an
 append-only stream of tuples. Such
@@ -110,6 +112,8 @@ processed. This is the data model that StreamReduce uses.
 The Aurora system~\cite{Carney:2002:MSN:1287369.1287389} introduces the concept of
 \emph{load shedding}, or compensating for
 resource overload by comparing job specific quality of service metrics with target levels.
+StreamReduce aims to incorporate load shedding to dynamically tune jobs in the face of
+impending time and resource constraints.
 
 \section{Design}
 \label{sec:design}

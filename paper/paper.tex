@@ -116,7 +116,8 @@ resource overload by comparing job specific quality of service metrics with targ
 StreamReduce aims to incorporate load shedding to dynamically tune jobs in the face of
 impending time and resource constraints.
 
-Aurora also introduces the operators \texttt{filter}, \texttt{map}, and \texttt{union} for
+Aurora also introduces the non-blocking operators
+\texttt{filter}, \texttt{map}, and \texttt{union} for
 manipulating streams. StreamReduce implements these operators at the worker and fetcher nodes.
 
 \subsection{Approximation Algorithms}

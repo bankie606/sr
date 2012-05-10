@@ -165,7 +165,29 @@ task failure rates. I use this approach in the case study discussed in Section~\
 \label{sec:design}
 StreamReduce is a distributed system for processing streams that can choose to kill tasks or
 limit the amount of work it performs per task. Its design is modular and there are five
-different types of nodes in a StreamReduce cluster: spout, fetcher, worker, collector, master.
+different types of nodes in a StreamReduce cluster:
+\begin{itemize}
+  \item
+    \textbf{Spout}: A node external to the cluster that is a source of streaming data.
+  \item
+    \textbf{Fetcher}: Communicates with spouts to provide data for workers.
+  \item
+    \textbf{Worker}: Processes data returned by fetchers. They are the source of parallel computation
+    in the cluster.
+  \item
+    \textbf{Collector}: Aggregates results from all workers and makes the result accessible via an API.
+  \item
+    \textbf{Master}: Manages the cluster by bringing nodes online to complete jobs. It is reponsible
+    for all internode communication and storing to-be-processed data in several queues.
+\end{itemize}
+Figure~\ref{fig:systemdiagram} shows a system diagram of StreamReduce.
+
+\begin{figure*}
+\includegraphics[width=\textwidth]{system-diagram.png}
+\caption{Overview of data flow in the execution of a StreamReduce job. Load shedding occurs at point A. Task killing occurs at point B.}
+\label{fig:systemdiagram}
+\end{figure*}
+
 \subsection{Spout}
 Spouts are network-connected machines that generate data for a StreamReduce cluster to process.
 Examples include a machine that tails a log file or an API like the Twitter tweet
@@ -236,6 +258,20 @@ Another consequence of the master being the only well-known node is that all dat
 cluster must flow through it. The master maintains two queues per job for buffering job
 progress from fetchers and workers and periodically pushes this state out to workers and
 collectors, respectively.
+
+\begin{figure}
+\includegraphics[width=\linewidth]{master-control-queue.png}
+\caption{The master communicates directly with all nodes to pass them control messages. Nodes respond directly to the master with their results.}
+\label{fig:mastercontrolqueue}
+\end{figure}
+
+Figure~\ref{fig:mastercontrolqueue} shows how control messages are passed from the master
+to all other nodes in the cluster. The master communicates directly to each node and nodes
+reply directly to the master when they have completed their task. With these control messages,
+the master advances the state of the job. Such messages include telling a fetcher to fetch data
+from a spout, giving data to a worker to process, and flushing results to collectors.
+
+
 \subsection{Configuring a Cluster for a Job}
 \label{sec:jobfile}
 Apart from spouts, all nodes in a cluster modify their behavior based on the job they are

@@ -331,21 +331,8 @@ Figure~\ref{fig:clusterDiagram}. Worker nodes were XVM~\cite{sipb:xvm} VMs provi
 The master, spout, fetcher, and collector ran on a mid-2010 Macbook Air laptop with~4GB of RAM.
 
 \begin{figure}
-\begin{verbatim}
-                  |--------|
-                - | worker |
-               /  |--------|
-|-----------| /   |--------|
-| master    | --- | worker |
-| spout     |     |--------|
-| fetcher   |     |--------|
-| collector | --- | worker |
-|-----------| \   |--------|
-               \  |--------|
-                - | worker |
-                  |--------|
-\end{verbatim}
-\caption{Topology of the test StreamReduce cluster used in the word count case study. Each box represents a single machine.}
+  \includegraphics[width=\linewidth]{sr-topology.png}
+  \caption{Topology of the test StreamReduce cluster used in the word count case study. Each square box represents a single machine. Each rounded box represents a StreamReduce role.}
 \label{fig:clusterDiagram}
 \end{figure}
 

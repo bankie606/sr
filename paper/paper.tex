@@ -6,11 +6,12 @@
 \graphicspath{{images/}}
 \usepackage{tabularx}
 \usepackage{url}
+\usepackage{hyperref}
 
 \title{StreamReduce: Processing Data Streams\\and Avoiding Work}
 \author{Ryan Lopopolo\\
 Massachusetts Institute of Technology\\
-\texttt{lopopolo@mit.edu}}
+\href{mailto:lopopolo@mit.edu}{\texttt{lopopolo@mit.edu}}}
 
 \begin{document}
 \maketitle
@@ -18,27 +19,37 @@ Massachusetts Institute of Technology\\
 \section{Introduction}
 \label{sec:intro}
 One of the fundamental problems MapReduce was created to solve was processing
-the growing amount of data in the world. Now with the open source Apache Hadoop
-and Pig~\cite{Olston:2008:PLN:1376616.1376726}, it is easy to process and query
-the terabytes of data an organization
-may collect. With terabytes of data, however, it is scarcely necessary to examine
-every entry to uncover trends, especially when one only cares about the most prominent
-trends or results. This type of workflow lends itself naturally to top-k-style computations,
+the growing amount of data in the world.
+MapReduce lends itself naturally to top-k-style computations,
 data sampling tasks, and other cases where perfect-fidelity results are not required.
-%Google runs PageRank on the entire Internet, but if
-%it only did on half of the pages it crawls, it would likely still have a usable
-%index for delivering the first 5 pages of results.
+Now with the open source Apache Hadoop
+and Pig~\cite{Olston:2008:PLN:1376616.1376726}, it is easy to process and query
+the terabytes of data an organization may collect.
+%The widespread use of these tools to solve problems they weren't designed for motivates
+%us to explore how we can save time, resources, and prevent faults in the execution of
+%such MapReduce tasks.
 
-How does one decide which data to process then? Selctively deciding which data to
+With terabytes of data, however, it is scarcely necessary to examine
+every entry to uncover trends, especially when one only cares about the most prominent
+trends or results.
+How does one decide which data to process then? Ultimately, this is problem dependent;
+however, selctively deciding which data to
 log is problematic because it can systemically mask some of the trends one would
-try to uncover through analysis. In this paper, I explore the possibility of
-discarding data randomly while trying to maintain a target accuracy level.
-On the subset of data that I do process, I explore using
-computation routines of differing fidelities to sample the data. Combining both of these
-techniques allows the cluster to avoid performing work.
+try to uncover through analysis. In this paper, I introduce StreamReduce, a distributed system
+for processing data streams. With StreamReduce I explore:
+\begin{itemize}
+  \item
+    Randomly discarding data while trying to maintain a target accuracy level.
+  \item
+    Processing data using a variety of computation routines, some of which are less
+    accurate than others.
+\end{itemize}
+Combining both of these techniques allows the cluster to save time by executing faster,
+save resources by avoiding the need to process every datum, and minimize the impact of faults
+in the execution of a job by treating failed tasks as discarded tasks.
 
-One of the problems with MapReduce is how to
-incorporate new data into an already analyzed task. MapReduce simply says to rerun
+Another limitation of MapReduce is batch processing. How does one
+incorporate new data into an already analyzed task? MapReduce simply says to rerun
 the job with the new data included. Others have solved this problem by batching data
 into chunks and continuously spawning MapReduce jobs to incorporate the new data
 and incrementally storing updates in an external database instead of relying on
@@ -51,15 +62,9 @@ by spinning workers up and down as necessary, and ensures results are as fresh a
 by incorporating data into the result as soon as it arrives.
 
 The goal of StreamReduce is to provide a MapReduce-style framework for processing streams. Such a
-framework should include the ability to kill or discard tasks and be capable of
-providing workers with serveral different computation routines to choose among.
-
-The remainder of this paper is organized as follows. Section~\ref{sec:relwork} provides
-an overview of related work on distributed stream processing as well as dynamic and
-approximate computations. Section~\ref{sec:design} details the design of StreamReduce.
-Section~\ref{sec:methodology} explains the methodology used to perform a case study
-using StreamReduce. Section~\ref{sec:evaluation} evaluates the effectiveness of StreamReduce in the case study.
-Section~\ref{sec:discussion} enumerates issues with StreamReduce's current implementation.
+framework should include the ability to kill or discard tasks, be capable of
+providing workers with serveral different computation routines to choose among, and pass data
+between nodes using non-blocking routines.
 
 \section{Related Work}
 \label{sec:relwork}

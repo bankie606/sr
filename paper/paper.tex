@@ -332,8 +332,8 @@ The master, spout, fetcher, and collector ran on a mid-2010 Macbook Air laptop w
 the cluster to kill tasks on the master node, before they were shipped to workers.
 
 \begin{figure}
-  \includegraphics[width=\linewidth]{sr-topology.png}
-  \caption{Topology of the test StreamReduce cluster used in the word count case study. Each square box represents a single machine. Each rounded box represents a StreamReduce role.}
+\includegraphics[width=\linewidth]{sr-topology.png}
+\caption{Topology of the test StreamReduce cluster used in the word count case study. Each square box represents a single machine. Each rounded box represents a StreamReduce role.}
 \label{fig:clusterDiagram}
 \end{figure}
 
@@ -389,7 +389,7 @@ if the distribution is long-tailed, but is not true if the distribution is unifo
 
 \begin{figure}
 \includegraphics[width=\linewidth]{long-tail-ranks.png}
-\caption{The frequencies of words in the Wikipedia Featured Articles corpus have a long-tailed distribution.}
+\caption{The frequencies of words in the Wikipedia Featured Articles corpus have a long-tailed distribution. This graph has had stopwords~\cite{stopwords} filtered out of it.}
 \label{fig:wordDist}
 \end{figure}
 
@@ -403,12 +403,30 @@ meaning that the cluster only looks at 8\% of the words in the corpus, the resul
 are at least~80\% accurate. Increasing the work level, which increases the fidelity of
 results emitted by workers, also increases the fidelity of the top~100 results.
 
-
 \begin{figure}
 \includegraphics[width=\linewidth]{top-100-precision.png}
 \caption{Fraction of the top~100 results returned in the top~100 by the word count job.}
 \label{fig:precision}
 \end{figure}
+
+\subsubsection{Recall}
+Recall in the tail of the distribution is most dependent on the work level of the word count job.
+Anything less than perfect computation of a datum leaves out words with a frequency of one.
+Figure~\ref{fig:recall} shows how recall improves as the work level increases. Task killing has
+the same effect on recall as using low fidelity computation routines, so recall decreases as
+the task kill rate does. Task killing dominates the impact of work level on recall as demonstrated
+by the two lines converging in Figure~\ref{fig:recall}.
+
+Poor recall statistics are acceptable because I am running a top-k job that focuses
+on good precision in the top~100. Because I use a weighted $F$-score, the poor recall's impact
+on measured accuracy is mitigated.
+
+\begin{figure}
+\includegraphics[width=\linewidth]{recall.png}
+\caption{Fraction of the bottom~10000 results returned in the result set by the word count job.}
+\label{fig:recall}
+\end{figure}
+
 
 \subsubsection{Word Count Job Accuracy}
 Because I am running a top-k job, I compute the $F_{0.5}$-score of the StreamReduce results as
@@ -425,6 +443,14 @@ higher than the fraction of words examined.
 \label{fig:fscore}
 \end{figure}
 
+The average reduction in $F_{0.5}$-score caused by reducing the work level form 0.8 to 0.4 is
+$0.231$ with a standard deviation of $0.025$. I performed four additional experiments with the
+work level set to $0.8$ and $0.4$ with the task kill rate set to $0.1$ and $0.7$. These experiments were
+not included in generating Figure~\ref{fig:fscore}. The average reduction in $F_{0.5}$-score between
+work level $0.8$ and $0.4$ in these experiments is $0.230$ with a standard deviation of
+$0.056$. These numbers show that a $0.4$ reduction in the work level leads to approximately a
+$0.23$ reduction in $F_{0.5}$-score.
+
 \subsection{Speedup}
 StreamReduce is able to achieve a speedup over a MapReduce-style computation through three mechanisms:
 providing multiple computation routines for the workers to choose from; varying the task kill
@@ -438,27 +464,65 @@ increasing the task kill rate. Increasing the task kill rate exhibits a linear r
 time as the fraction of processed data linearly decreases.
 
 \begin{table}
-\begin{tabularx}{\linewidth}{|c|c|X|}
+\begin{tabularx}{\linewidth}{|X|X|X|X|}
 \hline
-Task kill rate & Work level & Average execution time [minutes] \\ \hline
-0.0 & 1.0 & 11:35.5 \\ \hline
-0.0 & 0.4 & 10:33.8 \\ \hline
-0.0 & 0.8 & 10:30.8 \\ \hline
-0.2 & 0.4 & 08:25.8 \\ \hline
-0.2 & 0.8 & 08:37.8 \\ \hline
-0.4 & 0.4 & 06:54.0 \\ \hline
-0.4 & 0.8 & 06:28.2 \\ \hline
-0.6 & 0.4 & 04:14.7 \\ \hline
-0.6 & 0.8 & 04:13.7 \\ \hline
-0.8 & 0.4 & 02:33.3 \\ \hline
-0.8 & 0.8 & 02:15.0 \\ \hline
+Task kill rate & Work level & Average execution time [s] & $F_{0.5}$-score \\ \hline\hline
+0.0 & 1.0 & 696 & 1.000 \\ \hline
+0.0 & 0.8 & 631 & 0.939 \\ \hline
+0.0 & 0.4 & 634 & 0.725 \\ \hline\hline
+0.2 & 1.0 & 531 & 0.933 \\ \hline
+0.2 & 0.8 & 518 & 0.890 \\ \hline
+0.2 & 0.4 & 506 & 0.627 \\ \hline\hline
+0.4 & 1.0 & 393 & 0.829 \\ \hline
+0.4 & 0.8 & 388 & 0.797 \\ \hline
+0.4 & 0.4 & 414 & 0.552 \\ \hline\hline
+0.6 & 1.0 & 292 & 0.774 \\ \hline
+0.6 & 0.8 & 254 & 0.690 \\ \hline
+0.6 & 0.4 & 255 & 0.453 \\ \hline\hline
+0.8 & 1.0 & 144 & 0.541 \\ \hline
+0.8 & 0.8 & 135 & 0.489 \\ \hline
+0.8 & 0.4 & 153 & 0.290 \\ \hline
 \end{tabularx}
-\caption{Impact of task kill rate and work level on job execution time.}
+\caption{Impact of task kill rate and work level on job execution time and $F_{0.5}$-score.}
 \label{table:runtime}
 \end{table}
 
 Notably, simply by killing tasks, StreamReduce is able to achieve over a~5 times speedup compared
 to the perfect execution while still returning about~84 of the top~100 words.
+
+\subsection{Speed vs. Accuracy Tradeoffs}
+\begin{center}
+\begin{table*}
+  \begin{tabularx}{\linewidth}{|lr|lr|lr|}
+    \hline
+    \multicolumn{2}{|X|}{Work level = 1.0 and task kill rate = 0.0} &
+    \multicolumn{2}{|X|}{Work level = 0.8 and task kill rate = 0.4} &
+    \multicolumn{2}{|X|}{Work level = 0.4 and task kill rate = 0.8} \\ \hline
+    33225 & title & 21184 & title & 5982 & title \\ \hline
+    29356 & web & 18398 & web & 4689 & web \\ \hline
+    23095 & book & 13591 & journal & 4225 & journal \\ \hline
+    21821 & journal & 13429 & book & 3629 & year \\ \hline
+    20124 & year & 12770 & publisher & 3617 & publisher \\ \hline
+    19786 & publisher & 12550 & url & 3444 & url \\ \hline
+    19478 & url & 12220 & year & 3410 & book \\ \hline
+    17360 & news & 11511 & news & 3273 & news \\ \hline
+    16685 & accessdate & 11082 & united & 2968 & accessdate \\ \hline
+    16401 & united & 10691 & accessdate & 2582 & world \\ \hline
+  \end{tabularx}
+  \caption{Example top~10 results and their frequencies from several different job configurations. The top~10 do not change much one changes the paramters to make the job less accurate.}
+  \label{table:top10}
+\end{table*}
+\end{center}
+
+Because the word distribution is so skewed toward the head, there is a great potential to
+speed up the calculation by killing tasks without having to sacrifice too much accuracy.
+Additionally, Table~\ref{table:runtime} shows that the most significant time savings comes
+from increasing the kill rate and keeping the work level high yields about a~20 percentage point
+increase in $F_{0.5}$-score.
+
+The best combination of parameters is a high work level and as high a task kill rate one can
+manage with respect to one's target distortion level.
+
 
 \section{Implementation Notes}
 \label{sec:discussion}

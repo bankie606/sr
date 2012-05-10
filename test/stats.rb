@@ -91,5 +91,26 @@ puts "%-5s%-10s%-10s%-10s%-10s%-10s%-10s%-10s%-10s" % ["exp", "t1 pre", "t1 reca
 end
 
 puts ""
+
+(15..18).each do |exp|
+  trial_results = ["#{exp}"]
+  (1...2).each do |run|
+    trial = {}
+    File.open(File.join(File.dirname(__FILE__), "datadumps", "experiment-#{exp}-run-#{run}.json")) do |f|
+      json = JSON.parse(f.read)
+      json.each_pair do |k,v|
+        trial[k.to_i] = v
+      end
+    end
+    top100s = getTopK(trial, 100)
+    top100g = getTopK(gold, 100)
+    trial_results << precision(top100g, top100s)
+    trial_results << recallForBottomK(gold, trial, 10000)
+  end
+  puts "%-5s%-10s%-10s" % trial_results
+end
+
+
+puts ""
 puts "%-25s%5d" % ["Precision (top k)", 100]
 puts "%-25s%5d" % ["Recall (bot k)", 10000]

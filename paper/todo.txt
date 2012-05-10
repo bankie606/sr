@@ -1,0 +1,18 @@
+* Rework introduction
+* remove outline from end of introduction
+* Cite oopsla07 and ics06 in related work
+* bulleted list of components to intro of section 3
+* System diagram a la MapReduce paper
+* Master control message diagram
+* Describe control queue and messages in master section
+* Add number of trials for each run in methodology
+* Add point where killing stuff in methodology
+* run experiments with the following params
+  work level = 0.8,0.4 && kill rate = 0.1, 0.9
+* Add recall plot
+* Add top 10 words for example jobs table
+* Redo speedup table with work level = 1.0 and add f measure
+* talk about avg f-score reduction and do learning
+* discuss f-score and tradeoffs at end of evaluation section
+* talk about load shedding in 6.2
+

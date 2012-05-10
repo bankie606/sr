@@ -18,7 +18,7 @@ Massachusetts Institute of Technology\\
 
 \section{Introduction}
 \label{sec:intro}
-One of the fundamental problems MapReduce was created to solve was processing
+One of the fundamental problems MapReduce was created to solve is processing
 the growing amount of data in the world.
 MapReduce lends itself naturally to top-k-style computations,
 data sampling tasks, and other cases where perfect-fidelity results are not required.
@@ -112,7 +112,7 @@ data itself.
 
 The \emph{Data Stream Model}~\cite{Babcock:2002:MID:543613.543615} is a refinement of the Chronicle
 Data Model. It has the following properties: stream items may arrive out of order,
-streams are potentially unbounded in size, elements in the stream are discared after they are
+streams are potentially unbounded in size, and elements in the stream are discared after they are
 processed. This is the data model that StreamReduce uses.
 
 The Aurora system~\cite{Carney:2002:MSN:1287369.1287389} introduces the concept of
@@ -135,7 +135,7 @@ An alternative to load shedding to cope with high stream throughput is to perfor
 computations on stream data.
 
 Dynamic Knobs~\cite{Hoffmann:2011:DKR:1950365.1950390} describes a mechanism to explore the
-accuracy-performance tradeoff space to adjust dynamically adjust program tuning parameters
+accuracy-performance tradeoff space, dynamically adjusting program tuning parameters in response
 to changes in the execution environment. This allows programs to do things such as
 utilize more resources if they become available, use less power if power rates spike,
 or use less accurate computations in the face of an impending time constraint.
@@ -242,7 +242,7 @@ Collectors also expose an API endpoint for accessing the results of a job. This 
 can be used by another spout to chain StreamReduce jobs together.
 \subsection{Master}
 \label{sec:master}
-There is one master node per StreamReduce network. It has a function similar to the jobtracker in
+There is one master node per StreamReduce cluster. It has a function similar to the jobtracker in
 MapReduce. New jobs are scheduled with the master and it initializes other nodes in the
 cluster with job state. For each job, the master schedules roles among nodes in a round robin
 manner to minimize the total number of outstanding roles on any one node.
@@ -284,10 +284,11 @@ provided by the StreamReduce framework. This class exposes several methods that 
 given node to provide configuration parameters or execute code on its behalf. Most of the
 routines that advance the progress of a StreamReduce job are wrappers around these Jobfile methods.
 
-StreamReduce sends the source of the Jobfile to every node participating in the job and uses eval to
+StreamReduce sends the source of the Jobfile to every node participating in the job and uses
+\texttt{eval} to
 obtain a local instance of the Jobfile class. An example jobfile can be found at~\cite{github}.
 
-The use of eval to instantiate Jobfile objects and the implementation language's (ruby)
+The use of \texttt{eval} to instantiate Jobfile objects and the implementation language's (ruby)
 ability to monkeypatch classes means that jobs can be modified on the fly just by sending
 an updated Jobfile to job participants. For example, a job can be made lower fidelity in
 the face of an impending time constraint, be made higher fidelity if more workers are added to
@@ -356,7 +357,7 @@ JSON.
 The fetcher communicates to the spout by requesting sequential article ids until it has fetched
 every article.
 
-Workers are initialized with the~3 computation routines shown in Table~\ref{table:workerTasks}.
+Workers are initialized with the three computation routines shown in Table~\ref{table:workerTasks}.
 
 \begin{table}
 \begin{tabularx}{\linewidth}{|c|X|}
@@ -383,7 +384,7 @@ To evaluate StreamReduce, I explore the precision and recall of the word count t
 speedup factor associated with varying the task kill rate and target work level.
 
 \subsection{Precision and Recall}
-In order for task killing to be an effective strategy for a top-k computation, the
+For task killing to be an effective strategy for a top-k computation, the
 distribution of words in the corpus must be able to sustain data loss. This is the case
 if the distribution is long-tailed, but is not true if the distribution is uniform.
 
@@ -419,7 +420,7 @@ by the two lines converging in Figure~\ref{fig:recall}.
 
 Poor recall statistics are acceptable because I am running a top-k job that focuses
 on good precision in the top~100. Because I use a weighted $F$-score, the poor recall's impact
-on measured accuracy is mitigated.
+on measured accuracy is lessened.
 
 \begin{figure}
 \includegraphics[width=\linewidth]{recall.png}
@@ -445,7 +446,7 @@ higher than the fraction of words examined.
 
 The average reduction in $F_{0.5}$-score caused by reducing the work level form 0.8 to 0.4 is
 $0.231$ with a standard deviation of $0.025$. I performed four additional experiments with the
-work level set to $0.8$ and $0.4$ with the task kill rate set to $0.1$ and $0.7$. These experiments were
+work level set to $\{0.8,0.4\}$ and with the task kill rate set to $\{0.1,0.7\}$. These experiments were
 not included in generating Figure~\ref{fig:fscore}. The average reduction in $F_{0.5}$-score between
 work level $0.8$ and $0.4$ in these experiments is $0.230$ with a standard deviation of
 $0.056$. These numbers show that a $0.4$ reduction in the work level leads to approximately a
@@ -541,7 +542,7 @@ to send data and results between nodes because of its low barrier to entry; howe
 HTTP requests in succession is expensive. When killing jobs on worker nodes, the observed time savings
 was minimal because most of the time spent per datum involved shipping it from the master to the worker.
 
-In order to mitigate the effects of this problem, I batched individual requests into groups of~5. This
+To mitigate the effects of this problem, I batched individual requests into groups of~5. This
 lowered the number of connections I was initiating but it also limited the parallelism of the cluster
 and removed workers from the pool for longer periods because they had more data to process at a time.
 A killed task on the worker no longer freed it up to receive a new task immediately.
@@ -553,7 +554,7 @@ decides to discard a task as it is popped from the queue, before it is ever sent
 Doing so improved the execution time of the cluster but also meant that workers no longer had
 a full idea of how accurate they were being because they never killed any tasks themselves.
 
-In order to address this problem, the master needs to keep a persistent channel open between
+To address this problem, the master needs to keep a persistent channel open between
 it and all active nodes. Communication channels should be established when nodes come online.
 Possible solutions include writing to a socket or using a higher abstraction like AMPQ\@.
 AMPQ is appealing because it also relieves the master from handling queues.

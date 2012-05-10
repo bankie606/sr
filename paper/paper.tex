@@ -96,7 +96,7 @@ progress up to that point. This removes the synchronization barriers inherient i
 and allows incremental progress to be observed.
 
 This approach is in contrast to the continuous query approach taken by many other streaming
-systems.
+systems. StreamReduce uses this snapshot approach.
 
 \subsection{Data Stream Management Systems}
 In their overview on data stream projects~\cite{Babcock:2002:MID:543613.543615},
@@ -117,9 +117,14 @@ processed. This is the data model that StreamReduce uses.
 
 The Aurora system~\cite{Carney:2002:MSN:1287369.1287389} introduces the concept of
 \emph{load shedding}, or compensating for
-resource overload by comparing job specific quality of service metrics with target levels.
+resource overload by comparing job specific quality of service metrics with target levels and
+dropping items from the data stream.
 StreamReduce aims to incorporate load shedding to dynamically tune jobs in the face of
-impending time and resource constraints.
+impending time and resource constraints. On the other hand, it may be the case that
+parts of a processing pipeline struggle to provide enough data to keep the next stage busy.
+In this case, a streaming system would like to implement
+\emph{early phase termination}~\cite{Rinard:2007:UEP:1297027.1297055}, or preemptively kill
+a stage in the pipeline that is not capable of keeping all workers busy.
 
 Aurora also introduces the non-blocking operators
 \texttt{filter}, \texttt{map}, and \texttt{union} for
@@ -135,7 +140,7 @@ to changes in the execution environment. This allows programs to do things such 
 utilize more resources if they become available, use less power if power rates spike,
 or use less accurate computations in the face of an impending time constraint.
 
-The most important piece Dyanmic Knobs offers to the DSMS space is dynamic
+The most important piece Dynamic Knobs offers to the DSMS space is dynamic
 \emph{peak load provisioning}. Their system can adjust downward the amount of resources,
 machines, etc. required for normal load and quickly adjust these levels back up to
 handle load spikes. Combined with Aurora's load shedding, peak load provisioning can
@@ -147,6 +152,14 @@ that alter a computation according to a set of probabilstic weights and an accur
 target such that the computation performs more efficiently. StreamReduce uses the subclass
 of transformations called \emph{substitution transformations} in worker nodes to adjust
 the runtime characteristics of per-datum computation.
+
+The combination of load shedding, task killing and substitution transformations presents
+an opportunity for the results of a computation performed by StreamReduce to be distorted.
+Rinard~\cite{Rinard:2006:PAB:1183401.1183447} describes a method for bounding the distortion
+introduced when discarding tasks. By breaking a computation into tasks, which in StreamReduce
+consist of processing an individual datum at a worker, we can measure a
+\emph{probabilistic distortion model} for a job, which gives bounds on its accuracy at different
+task failure rates. I use this approach in the case study discussed in Section~\ref{sec:evaluation}.
 
 \section{Design}
 \label{sec:design}

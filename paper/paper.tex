@@ -33,9 +33,10 @@ With terabytes of data, however, it is scarcely necessary to examine
 every entry to uncover trends, especially when one only cares about the most prominent
 trends or results.
 How does one decide which data to process then? Ultimately, this is problem dependent;
-however, selctively deciding which data to
+however, selectively deciding which data to
 log is problematic because it can systemically mask some of the trends one would
-try to uncover through analysis. In this paper, I introduce StreamReduce, a distributed system
+try to uncover through analysis. In this paper, I introduce StreamReduce, a distributed
+system
 for processing data streams. With StreamReduce I explore:
 \begin{itemize}
   \item
@@ -45,7 +46,8 @@ for processing data streams. With StreamReduce I explore:
     accurate than others.
 \end{itemize}
 Combining both of these techniques allows the cluster to save time by executing faster,
-save resources by avoiding the need to process every datum, and minimize the impact of faults
+save resources by avoiding the need to process every datum, and minimize the impact of
+faults
 in the execution of a job by treating failed tasks as discarded tasks.
 
 Another limitation of MapReduce is batch processing. How does one
@@ -61,9 +63,11 @@ data, can save resources
 by spinning workers up and down as necessary, and ensures results are as fresh as possible
 by incorporating data into the result as soon as it arrives.
 
-The goal of StreamReduce is to provide a MapReduce-style framework for processing streams. Such a
+The goal of StreamReduce is to provide a MapReduce-style framework for processing
+streams. Such a
 framework should include the ability to kill or discard tasks, be capable of
-providing workers with serveral different computation routines to choose among, and pass data
+providing workers with several different computation routines to choose among, and pass
+data
 between nodes using non-blocking routines.
 
 \section{Related Work}
@@ -81,21 +85,26 @@ between nodes using non-blocking routines.
 %   baked in to StreamReduce
 %
 
-StreamReduce builds of previous work in the areas of MapReduce, Data Stream Management Systems,
+StreamReduce builds of previous work in the areas of MapReduce, Data Stream Management
+Systems,
 and approximation algorithms.
 
 \subsection{MapReduce}
-There is a rich research field around MapReduce. This section details work related to adapting
+There is a rich research field around MapReduce. This section details work related to
+adapting
 MapReduce to a streaming environment.
 
-The Hadoop Online Prototype~\cite{Condie:EECS-2009-136} adds streaming to the MapReduce framework
+The Hadoop Online Prototype~\cite{Condie:EECS-2009-136} adds streaming to the
+MapReduce framework
 by removing the materialize phase between mappers and reducers and between phases of a
-MapReduce pipeline. Results are streamed from mappers to reducers as they become available.
+MapReduce pipeline. Results are streamed from mappers to reducers as they become
+available.
 At any given point, each reducer maintains an in-progress snapshot of the MapReduce job's
-progress up to that point. This removes the synchronization barriers inherient in MapReduce
+progress up to that point. This removes the synchronization barriers inherent in MapReduce
 and allows incremental progress to be observed.
 
-This approach is in contrast to the continuous query approach taken by many other streaming
+This approach is in contrast to the continuous query approach taken by many other
+streaming
 systems. StreamReduce uses this snapshot approach.
 
 \subsection{Data Stream Management Systems}
@@ -106,13 +115,17 @@ StreamReduce is a type of DSMS that includes some properties found in other syst
 
 The \emph{Chronicle Data Model}~\cite{Jagadish:1995:VMI:212433.220201} describes an
 append-only stream of tuples. Such
-streams lend themselves to incremental reads and incremental processing. In addition to incremental
-updates, the Chronicle Data Model also seeks to update results incrementally without storing the
+streams lend themselves to incremental reads and incremental processing. In addition to
+incremental
+updates, the Chronicle Data Model also seeks to update results incrementally without storing
+the
 data itself.
 
-The \emph{Data Stream Model}~\cite{Babcock:2002:MID:543613.543615} is a refinement of the Chronicle
+The \emph{Data Stream Model}~\cite{Babcock:2002:MID:543613.543615} is a refinement of
+the Chronicle
 Data Model. It has the following properties: stream items may arrive out of order,
-streams are potentially unbounded in size, and elements in the stream are discared after they are
+streams are potentially unbounded in size, and elements in the stream are discarded after
+they are
 processed. This is the data model that StreamReduce uses.
 
 The Aurora system~\cite{Carney:2002:MSN:1287369.1287389} introduces the concept of
@@ -123,43 +136,53 @@ StreamReduce aims to incorporate load shedding to dynamically tune jobs in the f
 impending time and resource constraints. On the other hand, it may be the case that
 parts of a processing pipeline struggle to provide enough data to keep the next stage busy.
 In this case, a streaming system would like to implement
-\emph{early phase termination}~\cite{Rinard:2007:UEP:1297027.1297055}, or preemptively kill
+\emph{early phase termination}~\cite{Rinard:2007:UEP:1297027.1297055}, or preemptively
+kill
 a stage in the pipeline that is not capable of keeping all workers busy.
 
 Aurora also introduces the non-blocking operators
 \texttt{filter}, \texttt{map}, and \texttt{union} for
-manipulating streams. StreamReduce implements these operators at the worker and fetcher nodes.
+manipulating streams. StreamReduce implements these operators at the worker and fetcher
+nodes.
 
 \subsection{Approximation Algorithms}
-An alternative to load shedding to cope with high stream throughput is to perform approximate
+An alternative to load shedding to cope with high stream throughput is to perform
+approximate
 computations on stream data.
 
-Dynamic Knobs~\cite{Hoffmann:2011:DKR:1950365.1950390} describes a mechanism to explore the
-accuracy-performance tradeoff space, dynamically adjusting program tuning parameters in response
+Dynamic Knobs~\cite{Hoffmann:2011:DKR:1950365.1950390} describes a mechanism to
+explore the
+accuracy-performance tradeoff space, dynamically adjusting program tuning parameters in
+response
 to changes in the execution environment. This allows programs to do things such as
 utilize more resources if they become available, use less power if power rates spike,
 or use less accurate computations in the face of an impending time constraint.
 
 The most important piece Dynamic Knobs offers to the DSMS space is dynamic
 \emph{peak load provisioning}. Their system can adjust downward the amount of resources,
-machines, etc. required for normal load and quickly adjust these levels back up to
+machines, etc\. required for normal load and quickly adjust these levels back up to
 handle load spikes. Combined with Aurora's load shedding, peak load provisioning can
 be used to create a DSMS that uses less resources in both the normal and peak load
 states.
 
-Accuracy-aware transformations~\cite{Zhu:2012:RAP:2103656.2103710} are a class of transformations
-that alter a computation according to a set of probabilstic weights and an accuracy
+Accuracy-aware transformations~\cite{Zhu:2012:RAP:2103656.2103710} are a class of
+transformations
+that alter a computation according to a set of probabilistic weights and an accuracy
 target such that the computation performs more efficiently. StreamReduce uses the subclass
 of transformations called \emph{substitution transformations} in worker nodes to adjust
 the runtime characteristics of per-datum computation.
 
 The combination of load shedding, task killing and substitution transformations presents
 an opportunity for the results of a computation performed by StreamReduce to be distorted.
-Rinard~\cite{Rinard:2006:PAB:1183401.1183447} describes a method for bounding the distortion
-introduced when discarding tasks. By breaking a computation into tasks, which in StreamReduce
+Rinard~\cite{Rinard:2006:PAB:1183401.1183447} describes a method for bounding the
+distortion
+introduced when discarding tasks. By breaking a computation into tasks, which in
+StreamReduce
 consist of processing an individual datum at a worker, we can measure a
-\emph{probabilistic distortion model} for a job, which gives bounds on its accuracy at different
-task failure rates. I use this approach in the case study discussed in Section~\ref{sec:evaluation}.
+\emph{probabilistic distortion model} for a job, which gives bounds on its accuracy at
+different
+task failure rates. I use this approach in the case study discussed in
+Section~\ref{sec:evaluation}.
 
 \section{Design}
 \label{sec:design}
@@ -172,24 +195,29 @@ different types of nodes in a StreamReduce cluster:
   \item
     \textbf{Fetcher}: Communicates with spouts to provide data for workers.
   \item
-    \textbf{Worker}: Processes data returned by fetchers. They are the source of parallel computation
+    \textbf{Worker}: Processes data returned by fetchers. They are the source of parallel
+computation
     in the cluster.
   \item
-    \textbf{Collector}: Aggregates results from all workers and makes the result accessible via an API.
+    \textbf{Collector}: Aggregates results from all workers and makes the result accessible via
+an API.
   \item
-    \textbf{Master}: Manages the cluster by bringing nodes online to complete jobs. It is reponsible
+    \textbf{Master}: Manages the cluster by bringing nodes online to complete jobs. It is
+responsible
     for all internode communication and storing to-be-processed data in several queues.
 \end{itemize}
 Figure~\ref{fig:systemdiagram} shows a system diagram of StreamReduce.
 
 \begin{figure*}
 \includegraphics[width=\textwidth]{system-diagram.png}
-\caption{Overview of data flow in the execution of a StreamReduce job. Load shedding occurs at point A. Task killing occurs at point B.}
+\caption{Overview of data flow in the execution of a StreamReduce job. Load shedding
+occurs at point A. Task killing occurs at point B.}
 \label{fig:systemdiagram}
 \end{figure*}
 
 \subsection{Spout}
-Spouts are network-connected machines that generate data for a StreamReduce cluster to process.
+Spouts are network-connected machines that generate data for a StreamReduce cluster to
+process.
 Examples include a machine that tails a log file or an API like the Twitter tweet
 stream. Fetchers depend on spouts as a source of streaming data.
 \subsection{Fetcher}
@@ -207,7 +235,8 @@ Workers perform processing on data provided by fetchers. They are similar to map
 in the MapReduce framework. Each worker receives a fraction of the total input data
 and each worker's tasks are independent of other workers'.
 
-Workers are responsible for fulfilling the main design goals of StreamReduce. Workers may choose
+Workers are responsible for fulfilling the main design goals of StreamReduce. Workers may
+choose
 to kill a task preemptively or, if it does not complete before a timeout, greedily. Additionally,
 workers may choose among a variety of routines for performing computation on a datum.
 Routines are ranked on a [0,1] scale based on the estimated fraction of total work it
@@ -221,7 +250,8 @@ The total work estimator is used as a proxy for accuracy when a worker updates
 this metric. This metric also takes into account the number of tasks it has killed
 for any reason.
 
-Because one of StreamReduce's goals is to process (potentially infinite) streams, workers do not
+Because one of StreamReduce's goals is to process (potentially infinite) streams, workers do
+not
 save their progress to disk and are forgetful; once the master queries a worker for its
 progress and the worker successfully returns it, the worker clears all of its state and
 continues processing. As a consequence, workers are easy to add or remove from the worker
@@ -236,22 +266,28 @@ Collectors differ from MapReduce reducers in that they receive their data piecew
 is produced from workers, as opposed to after all mappers have completed. This limits the
 types of stateless aggregation collectors can do to online operations. (Of course, a collector
 can choose to retain copies of individual worker results and re-reduce them each time more
-results are receieved, but this is not in the spirit of the framework.)
+results are received, but this is not in the spirit of the framework.)
 
 Collectors also expose an API endpoint for accessing the results of a job. This endpoint
 can be used by another spout to chain StreamReduce jobs together.
 \subsection{Master}
 \label{sec:master}
-There is one master node per StreamReduce cluster. It has a function similar to the jobtracker in
+There is one master node per StreamReduce cluster. It has a function similar to the
+jobtracker in
 MapReduce. New jobs are scheduled with the master and it initializes other nodes in the
-cluster with job state. For each job, the master schedules roles among nodes in a round robin
+cluster with job state. For each job, the master schedules roles among nodes in a round
+robin
 manner to minimize the total number of outstanding roles on any one node.
 
-The master is the only well-known node in the cluster. Other nodes in the network exclusively
-communicate with the master. The master and other nodes communicate with each other by issuing
-HTTP requests to a simple server on each node. I decided to make use of a library~\cite{sinatrarb}
+The master is the only well-known node in the cluster. Other nodes in the network
+exclusively
+communicate with the master. The master and other nodes communicate with each other by
+issuing
+HTTP requests to a simple server on each node. I decided to make use of a
+library~\cite{sinatrarb}
 providing the server functionality because there was a low barrier to getting inter-node
-communication functioning. This design choice presents some problems and will be discussed
+communication functioning. This design choice presents some problems and will be
+discussed
 further in Section~\ref{sec:discussion}.
 
 Another consequence of the master being the only well-known node is that all data in the
@@ -261,59 +297,81 @@ collectors, respectively.
 
 \begin{figure}
 \includegraphics[width=\linewidth]{master-control-queue.png}
-\caption{The master communicates directly with all nodes to pass them control messages. Nodes respond directly to the master with their results.}
+\caption{The master communicates directly with all nodes to pass them control messages.
+Nodes respond directly to the master with their results.}
 \label{fig:mastercontrolqueue}
 \end{figure}
 
-Figure~\ref{fig:mastercontrolqueue} shows how control messages are passed from the master
+Figure~\ref{fig:mastercontrolqueue} shows how control messages are passed from the
+master
 to all other nodes in the cluster. The master communicates directly to each node and nodes
-reply directly to the master when they have completed their task. With these control messages,
-the master advances the state of the job. Such messages include telling a fetcher to fetch data
+reply directly to the master when they have completed their task. With these control
+messages,
+the master advances the state of the job. Such messages include telling a fetcher to fetch
+data
 from a spout, giving data to a worker to process, and flushing results to collectors.
 
 
 \subsection{Configuring a Cluster for a Job}
 \label{sec:jobfile}
 Apart from spouts, all nodes in a cluster modify their behavior based on the job they are
-running. The master must know the appropriate number of nodes to spin up; fetchers need to
-know how to talk to spouts; workers need to know how to compute results; and collectors need
+running. The master must know the appropriate number of nodes to spin up; fetchers need
+to
+know how to talk to spouts; workers need to know how to compute results; and collectors
+need
 to know how to combine batched worker results.
 
-StreamReduce achieves this configuration with a Jobfile. Jobfiles are instances of a special class
-provided by the StreamReduce framework. This class exposes several methods that can be invoked by a
+StreamReduce achieves this configuration with a Jobfile. Jobfiles are instances of a special
+class
+provided by the StreamReduce framework. This class exposes several methods that can be
+invoked by a
 given node to provide configuration parameters or execute code on its behalf. Most of the
-routines that advance the progress of a StreamReduce job are wrappers around these Jobfile methods.
+routines that advance the progress of a StreamReduce job are wrappers around these Jobfile
+methods.
 
 StreamReduce sends the source of the Jobfile to every node participating in the job and uses
 \texttt{eval} to
-obtain a local instance of the Jobfile class. An example jobfile can be found at~\cite{github}.
+obtain a local instance of the Jobfile class. An example Jobfile can be found at~\cite{github}.
 
-The use of \texttt{eval} to instantiate Jobfile objects and the implementation language's (ruby)
-ability to monkeypatch classes means that jobs can be modified on the fly just by sending
+The use of \texttt{eval} to instantiate Jobfile objects and the implementation language's
+(ruby)
+ability to monkey-patch classes means that jobs can be modified on the fly just by sending
 an updated Jobfile to job participants. For example, a job can be made lower fidelity in
-the face of an impending time constraint, be made higher fidelity if more workers are added to
+the face of an impending time constraint, be made higher fidelity if more workers are added
+to
 the cluster, or gracefully kill all fetchers which allows the job to end after all of the
 various job queues are empty.
 \subsection{Fault Tolerance}
-StreamReduce can sustain the failure of any node other than the master. Because the master is responsible
-for shuffling data between fetchers, workers, and collectors, a job cannot make progress without
+StreamReduce can sustain the failure of any node other than the master. Because the master
+is responsible
+for shuffling data between fetchers, workers, and collectors, a job cannot make progress
+without
 the master.
 
 Fetchers can fail. The only consequence of fetcher failure is that some of the input stream is
-lost forever. Because StreamReduce uses the Data Stream Model, it does not attempt to recover this data.
+lost forever. Because StreamReduce uses the Data Stream Model, it does not attempt to
+recover this data.
 
-Worker failures may entail some lost work. Having the master poll each worker frequently for its
-progress mitigates the consequences of worker failure. For jobs that run for minutes or hours,
-100ms of lost work is $\ll0.1\%$ of the total. StreamReduce can simply treat these lost tasks as preemptively
+Worker failures may entail some lost work. Having the master poll each worker frequently for
+its
+progress mitigates the consequences of worker failure. For jobs that run for minutes or
+hours,
+100ms of lost work is $\ll0.1\%$ of the total. StreamReduce can simply treat these lost tasks
+as preemptively
 killed, which is already expected by the cluster.
 
-Each collector is an exact replica of all others. Collector failure does not impact correctness of
-the results delivered by any other collector. If no collectors are online, the data meant for them
-sits in a queue on the master. Bringing another collector online will allow these and future results
+Each collector is an exact replica of all others. Collector failure does not impact correctness
+of
+the results delivered by any other collector. If no collectors are online, the data meant for
+them
+sits in a queue on the master. Bringing another collector online will allow these and future
+results
 to be aggregated.
 \subsection{Killing Tasks and Working Less}
-A design goal of StreamReduce is to compute meaningful results from a stream and to do so while not
-processing every datum one-to-one. StreamReduce achieves this goal in two different ways. First, workers
+A design goal of StreamReduce is to compute meaningful results from a stream and to do so
+while not
+processing every datum one-to-one. StreamReduce achieves this goal in two different ways.
+First, workers
 may kill tasks preemptively to avoid the time and resource costs associated with processing
 that task. Second, workers rely on the Jobfile to provide them with several different
 computation routines of differing fidelities that perform a fraction of the total work on a
@@ -326,19 +384,24 @@ before the job starts (or updated \emph{in situ} via a new Jobfile).
 
 \section{Methodology}
 \label{sec:methodology}
-The cluster I used to test StreamReduce is a 5-node network consisting of~1 spout,~1 fetcher,~4 workers,~1
+The cluster I used to test StreamReduce is a 5-node network consisting of~1 spout,~1
+fetcher,~4 workers,~1
 collector, and~1 master. Roles were partitioned among nodes as shown in
-Figure~\ref{fig:clusterDiagram}. Worker nodes were XVM~\cite{sipb:xvm} VMs provisioned with~128MB RAM each.
-The master, spout, fetcher, and collector ran on a mid-2010 Macbook Air laptop with~4GB of RAM. I configured
+Figure~\ref{fig:clusterDiagram}. Worker nodes were XVM~\cite{sipb:xvm} VMs provisioned
+with~128MB RAM each.
+The master, spout, fetcher, and collector ran on a mid-2010 Macbook Air laptop with~4GB of
+RAM\@. I configured
 the cluster to kill tasks on the master node, before they were shipped to workers.
 
 \begin{figure}
 \includegraphics[width=\linewidth]{sr-topology.png}
-\caption{Topology of the test StreamReduce cluster used in the word count case study. Each square box represents a single machine. Each rounded box represents a StreamReduce role.}
+\caption{Topology of the test StreamReduce cluster used in the word count case study. Each
+square box represents a single machine. Each rounded box represents a StreamReduce role.}
 \label{fig:clusterDiagram}
 \end{figure}
 
-The job I ran was a word counter. The collector emits a hash whose keys are words and whose
+The job I ran was a word counter. The collector emits a hash whose keys are words and
+whose
 values are the frequency the key occurred in the test corpus.
 
 To run the job, I had to create a spout and find a source of data. For data, I acquired a
@@ -354,17 +417,20 @@ deflated it using zlib. This requires workers to inflate and decode the fulltext
 can process it further. The server reads from this YAML file and returns the resulting hash as
 JSON.
 
-The fetcher communicates to the spout by requesting sequential article ids until it has fetched
+The fetcher communicates to the spout by requesting sequential article ids until it has
+fetched
 every article.
 
-Workers are initialized with the three computation routines shown in Table~\ref{table:workerTasks}.
+Workers are initialized with the three computation routines shown in
+Table~\ref{table:workerTasks}.
 
 \begin{table}
 \begin{tabularx}{\linewidth}{|c|X|}
  \hline
 Weight & Description \\ \hline
 1.0 & Deflate and decode fulltext and count words in all of fulltext \\ \hline
-0.25 & Deflate and decode fulltext and count words in approximately a quarter of fulltext \\ \hline
+0.25 & Deflate and decode fulltext and count words in approximately a quarter of fulltext \\
+\hline
 0.1 & Return the results of the last computation from a cache \\ \hline
 \end{tabularx}
 \caption{Computation routines used by StreamReduce workers.}
@@ -373,14 +439,15 @@ Weight & Description \\ \hline
 
 The results of the word count job were then used in a script to compute the top~100 words.
 The cluster and word count job could be used in a two-stage top-k job. This script filters
-out SEO stopwords~\cite{stopwords} to achieve more interesting results.
+out SEO stop words~\cite{stopwords} to achieve more interesting results.
 
 I ran four trials of the word count job for every combination of work level and task kill
 rate I tested.
 
 \section{Evaluation}
 \label{sec:evaluation}
-To evaluate StreamReduce, I explore the precision and recall of the word count test job as well as the
+To evaluate StreamReduce, I explore the precision and recall of the word count test job as
+well as the
 speedup factor associated with varying the task kill rate and target work level.
 
 \subsection{Precision and Recall}
@@ -390,7 +457,8 @@ if the distribution is long-tailed, but is not true if the distribution is unifo
 
 \begin{figure}
 \includegraphics[width=\linewidth]{long-tail-ranks.png}
-\caption{The frequencies of words in the Wikipedia Featured Articles corpus have a long-tailed distribution. This graph has had stopwords~\cite{stopwords} filtered out of it.}
+\caption{The frequencies of words in the Wikipedia Featured Articles corpus have a long-
+tailed distribution. This graph has had stop words~\cite{stopwords} filtered out of it.}
 \label{fig:wordDist}
 \end{figure}
 
@@ -411,26 +479,31 @@ results emitted by workers, also increases the fidelity of the top~100 results.
 \end{figure}
 
 \subsubsection{Recall}
-Recall in the tail of the distribution is most dependent on the work level of the word count job.
+Recall in the tail of the distribution is most dependent on the work level of the word count
+job.
 Anything less than perfect computation of a datum leaves out words with a frequency of one.
 Figure~\ref{fig:recall} shows how recall improves as the work level increases. Task killing has
 the same effect on recall as using low fidelity computation routines, so recall decreases as
-the task kill rate does. Task killing dominates the impact of work level on recall as demonstrated
+the task kill rate does. Task killing dominates the impact of work level on recall as
+demonstrated
 by the two lines converging in Figure~\ref{fig:recall}.
 
 Poor recall statistics are acceptable because I am running a top-k job that focuses
-on good precision in the top~100. Because I use a weighted $F$-score, the poor recall's impact
+on good precision in the top~100. Because I use a weighted $F$-score, the poor recall's
+impact
 on measured accuracy is lessened.
 
 \begin{figure}
 \includegraphics[width=\linewidth]{recall.png}
-\caption{Fraction of the bottom~10000 results returned in the result set by the word count job.}
+\caption{Fraction of the bottom~10000 results returned in the result set by the word count
+job.}
 \label{fig:recall}
 \end{figure}
 
 
 \subsubsection{Word Count Job Accuracy}
-Because I am running a top-k job, I compute the $F_{0.5}$-score of the StreamReduce results as
+Because I am running a top-k job, I compute the $F_{0.5}$-score of the StreamReduce
+results as
 opposed to the $F1$-score because I care more about precision of the top k than recall
 in the tail. Figure~\ref{fig:fscore} shows that the $F_{0.5}$-score, or the weighted
 accuracy of the top-100 classifier, is always higher than the fraction of the input
@@ -440,28 +513,40 @@ higher than the fraction of words examined.
 
 \begin{figure}
 \includegraphics[width=\linewidth]{f-score.png}
-\caption{$F_{0.5}$-score for the top-100 word count job. I measured the $F$-score with $\beta=0.5$ because the goal of the job is to run a top-k filter on it, meaning I care more about precision than recall.}
+\caption{$F_{0.5}$-score for the top-100 word count job. I measured the $F$-score with
+$\beta=0.5$ because the goal of the job is to run a top-k filter on it, meaning I care more
+about precision than recall.}
 \label{fig:fscore}
 \end{figure}
 
-The average reduction in $F_{0.5}$-score caused by reducing the work level form 0.8 to 0.4 is
-$0.231$ with a standard deviation of $0.025$. I performed four additional experiments with the
-work level set to $\{0.8,0.4\}$ and with the task kill rate set to $\{0.1,0.7\}$. These experiments were
-not included in generating Figure~\ref{fig:fscore}. The average reduction in $F_{0.5}$-score between
+The average reduction in $F_{0.5}$-score caused by reducing the work level form 0.8 to 0.4
+is
+$0.231$ with a standard deviation of $0.025$. I performed four additional experiments with
+the
+work level set to $\{0.8,0.4\}$ and with the task kill rate set to $\{0.1,0.7\}$. These
+experiments were
+not included in generating Figure~\ref{fig:fscore}. The average reduction in $F_{0.5}$-score
+between
 work level $0.8$ and $0.4$ in these experiments is $0.230$ with a standard deviation of
-$0.056$. These numbers show that a $0.4$ reduction in the work level leads to approximately a
+$0.056$. These numbers show that a $0.4$ reduction in the work level leads to
+approximately a
 $0.23$ reduction in $F_{0.5}$-score.
 
 \subsection{Speedup}
-StreamReduce is able to achieve a speedup over a MapReduce-style computation through three mechanisms:
+StreamReduce is able to achieve a speedup over a MapReduce-style computation through
+three mechanisms:
 providing multiple computation routines for the workers to choose from; varying the task kill
-rate; and varying the target work level, which influences the chosen frequency of computation
+rate; and varying the target work level, which influences the chosen frequency of
+computation
 routines per worker.
 
-Table~\ref{table:runtime} shows the effect of varying the task kill rate and work level. The row
-with kill~rate~$=0.0$ and work~level~$=1.0$ represents the perfect, MapReduce-style, execution
+Table~\ref{table:runtime} shows the effect of varying the task kill rate and work level. The
+row
+with kill~rate~$=0.0$ and work~level~$=1.0$ represents the perfect, MapReduce-style,
+execution
 of the word count job. The only consistent reduction in execution time is a result of
-increasing the task kill rate. Increasing the task kill rate exhibits a linear reduction in execution
+increasing the task kill rate. Increasing the task kill rate exhibits a linear reduction in
+execution
 time as the fraction of processed data linearly decreases.
 
 \begin{table}
@@ -488,7 +573,8 @@ Task kill rate & Work level & Average execution time [s] & $F_{0.5}$-score \\ \h
 \label{table:runtime}
 \end{table}
 
-Notably, simply by killing tasks, StreamReduce is able to achieve over a~5 times speedup compared
+Notably, simply by killing tasks, StreamReduce is able to achieve over a~5 times speedup
+compared
 to the perfect execution while still returning about~84 of the top~100 words.
 
 \subsection{Speed vs. Accuracy Tradeoffs}
@@ -510,7 +596,9 @@ to the perfect execution while still returning about~84 of the top~100 words.
     16685 & accessdate & 11082 & united & 2968 & accessdate \\ \hline
     16401 & united & 10691 & accessdate & 2582 & world \\ \hline
   \end{tabularx}
-  \caption{Example top~10 results and their frequencies from several different job configurations. The top~10 do not change much one changes the paramters to make the job less accurate.}
+  \caption{Example top~10 results and their frequencies from several different job
+configurations. The top~10 do not change much one changes the parameters to make the job
+less accurate.}
   \label{table:top10}
 \end{table*}
 \end{center}
@@ -518,7 +606,8 @@ to the perfect execution while still returning about~84 of the top~100 words.
 Because the word distribution is so skewed toward the head, there is a great potential to
 speed up the calculation by killing tasks without having to sacrifice too much accuracy.
 Additionally, Table~\ref{table:runtime} shows that the most significant time savings comes
-from increasing the kill rate and keeping the work level high yields about a~20 percentage point
+from increasing the kill rate and keeping the work level high yields about a~20 percentage
+point
 increase in $F_{0.5}$-score.
 
 The best combination of parameters is a high work level and as high a task kill rate one can
@@ -527,59 +616,78 @@ manage with respect to one's target distortion level.
 
 \section{Implementation Notes}
 \label{sec:discussion}
-This section describes deficiencies in the implementation of StreamReduce used to run the case study
+This section describes deficiencies in the implementation of StreamReduce used to run the
+case study
 in this paper and goals for the next version of the system.
 
 \subsection{On-the-Fly Job Reconfiguration}
-The mechanism for altering execution of a job as it is running described in Section~\ref{sec:jobfile}
-is not yet implemented. Adding this feature to StreamReduce is a matter of adding an API endpoint
+The mechanism for altering execution of a job as it is running described in
+Section~\ref{sec:jobfile}
+is not yet implemented. Adding this feature to StreamReduce is a matter of adding an API
+endpoint
 to the servers run by each role and adding a bin-script to submit the new Jobfile.
 
 \subsection{Internode Communication}
-In Section~\ref{sec:master} I mentioned design difficulties relating to the master and using HTTP
-requests for sending messages between nodes. I initially chose to use HTTP requests with POST payloads
-to send data and results between nodes because of its low barrier to entry; however, initiating many
-HTTP requests in succession is expensive. When killing jobs on worker nodes, the observed time savings
-was minimal because most of the time spent per datum involved shipping it from the master to the worker.
+In Section~\ref{sec:master} I mentioned design difficulties relating to the master and using
+HTTP
+requests for sending messages between nodes. I initially chose to use HTTP requests with
+POST payloads
+to send data and results between nodes because of its low barrier to entry; however,
+initiating many
+HTTP requests in succession is expensive. When killing jobs on worker nodes, the observed
+time savings
+was minimal because most of the time spent per datum involved shipping it from the master
+to the worker.
 
 To mitigate the effects of this problem, I batched individual requests into groups of~5. This
-lowered the number of connections I was initiating but it also limited the parallelism of the cluster
-and removed workers from the pool for longer periods because they had more data to process at a time.
+lowered the number of connections I was initiating but it also limited the parallelism of the
+cluster
+and removed workers from the pool for longer periods because they had more data to
+process at a time.
 A killed task on the worker no longer freed it up to receive a new task immediately.
-Keeping workers removed from the pool caused the queues on the master to grow longer as the workers
+Keeping workers removed from the pool caused the queues on the master to grow longer as
+the workers
 could no longer keep up with the rate the fetcher was producing data.
 
 Eventually, I introduced a configuration option to kill tasks at the master. The master then
 decides to discard a task as it is popped from the queue, before it is ever sent to a worker.
-Doing so improved the execution time of the cluster but also meant that workers no longer had
+Doing so improved the execution time of the cluster but also meant that workers no longer
+had
 a full idea of how accurate they were being because they never killed any tasks themselves.
 
 To address this problem, the master needs to keep a persistent channel open between
-it and all active nodes. Communication channels should be established when nodes come online.
+it and all active nodes. Communication channels should be established when nodes come
+online.
 Possible solutions include writing to a socket or using a higher abstraction like AMPQ\@.
 AMPQ is appealing because it also relieves the master from handling queues.
 
 \subsection{Node Health}
-Currently, the master does not probe nodes to ensure that they are responsive. In the case that
+Currently, the master does not probe nodes to ensure that they are responsive. In the case
+that
 a node is serving a worker role for a job, this deficiency is masked. The node will simply not
-return the HTTP request sent to it to push it some data and the worker will remain removed from
+return the HTTP request sent to it to push it some data and the worker will remain removed
+from
 the pool. If the node is in the role of fetcher or collector, the master will stall.
 
 All messages passed by the master to other nodes must be made non-blocking.
 
 \subsection{Job Management}
-There is no support for killing jobs or removing them from the master's data structures. The only
+There is no support for killing jobs or removing them from the master's data structures. The
+only
 way to remove a job is to kill the master and all other nodes in the cluster.
 
 \section{Conclusion}
-I have extended the ideas of approximate computations to a MapReduce-style framework and shown
+I have extended the ideas of approximate computations to a MapReduce-style framework
+and shown
 that it is feasible to tune the input parameters of a job to achieve sufficient precision and
 recall for a particular application.
 
-I have taken a different approach to streaming MapReduce by treating data not as a batch, but
+I have taken a different approach to streaming MapReduce by treating data not as a batch,
+but
 as a stream. At any given point in the execution of a job, the collectors will have accurate
 (so far as the job parameters allow) results for data seen until that point. This approach
-guarantees freshness and makes it easier to incorporate new data into an existing computation,
+guarantees freshness and makes it easier to incorporate new data into an existing
+computation,
 yet it suffers from being limited to online aggregations.
 
 The StreamReduce source code is open source and available at:
@@ -598,3 +706,4 @@ XVM service, which made deploying a StreamReduce cluster painless.
 \bibliographystyle{plain}
 
 \end{document}
+

@@ -447,7 +447,7 @@ well as the
 speedup factor associated with varying the task kill rate and target work level.
 
 \subsection{Precision and Recall}
-For task killing to be an effective strategy for a top-k computation, the
+For task killing to be an effective strategy in a top-k computation, the
 distribution of words in the corpus must be able to sustain data loss. This is the case
 if the distribution is long-tailed, but is not true if the distribution is uniform.
 
@@ -605,6 +605,8 @@ less accurate.}
 
 Because the word distribution is so skewed toward the head, there is a great potential to
 speed up the calculation by killing tasks without having to sacrifice too much accuracy.
+Table~\ref{table:top10} demonstrates how little the top~10 changes in response to varying
+the job parameters.
 Additionally, Table~\ref{table:runtime} shows that the most significant time savings comes
 from increasing the kill rate and keeping the work level high yields about a~20 percentage
 point

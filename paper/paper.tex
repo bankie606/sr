@@ -53,7 +53,7 @@ in the execution of a job by treating failed tasks as discarded tasks.
 Another limitation of MapReduce is batch processing. How does one
 incorporate new data into an already analyzed task? MapReduce simply says to rerun
 the job with the new data included. Others have solved this problem by batching data
-into chunks and continuously spawning MapReduce jobs to incorporate the new data
+into chunks, continuously spawning MapReduce jobs to incorporate the new data,
 and incrementally storing updates in an external database instead of relying on
 the file system for enforcing the synchronization barrier.
 
@@ -152,7 +152,7 @@ computations on stream data.
 
 Dynamic Knobs~\cite{Hoffmann:2011:DKR:1950365.1950390} describes a mechanism to
 explore the
-accuracy-performance tradeoff space, dynamically adjusting program tuning parameters in
+accuracy--performance tradeoff space, dynamically adjusting program tuning parameters in
 response
 to changes in the execution environment. This allows programs to do things such as
 utilize more resources if they become available, use less power if power rates spike,
@@ -189,24 +189,19 @@ Section~\ref{sec:evaluation}.
 StreamReduce is a distributed system for processing streams that can choose to kill tasks or
 limit the amount of work it performs per task. Its design is modular and there are five
 different types of nodes in a StreamReduce cluster:
-\begin{itemize}
-  \item
-    \textbf{Spout}: A node external to the cluster that is a source of streaming data.
-  \item
-    \textbf{Fetcher}: Communicates with spouts to provide data for workers.
-  \item
-    \textbf{Worker}: Processes data returned by fetchers. They are the source of parallel
+\begin{description}
+  \item[Spout] A node external to the cluster that is a source of streaming data.
+  \item[Fetcher] Communicates with spouts to provide data for workers.
+  \item[Worker] Processes data returned by fetchers. They are the source of parallel
 computation
     in the cluster.
-  \item
-    \textbf{Collector}: Aggregates results from all workers and makes the result accessible via
+  \item[Collector] Aggregates results from all workers and makes the result accessible via
 an API.
-  \item
-    \textbf{Master}: Manages the cluster by bringing nodes online to complete jobs. It is
+  \item[Master] Manages the cluster by bringing nodes online to complete jobs. It is
 responsible
     for all internode communication and storing to-be-processed data in several queues.
-\end{itemize}
-Figure~\ref{fig:systemdiagram} shows a system diagram of StreamReduce.
+\end{description}
+Figure~\ref{fig:systemdiagram} shows a system diagram of a StreamReduce cluster.
 
 \begin{figure*}
 \includegraphics[width=\textwidth]{system-diagram.png}
@@ -219,13 +214,13 @@ occurs at point A. Task killing occurs at point B.}
 Spouts are network-connected machines that generate data for a StreamReduce cluster to
 process.
 Examples include a machine that tails a log file or an API like the Twitter tweet
-stream. Fetchers depend on spouts as a source of streaming data.
+stream~\cite{twitter}. Fetchers depend on spouts as a source of streaming data.
 \subsection{Fetcher}
 Fetchers are responsible for communicating with spouts and returning data for the
 workers to process. This level of indirection allows for a variety of different
 configurations: A spout can emit data at such a high rate that using multiple fetchers
-returns more data to the cluster, multiple fetchers can each talk to a different spout,
-for example tailing logs from multiple machines, or fetchers can be set up redundantly
+returns more data to the cluster; multiple fetchers can each talk to a different spout,
+for example tailing logs from multiple machines; or fetchers can be set up redundantly
 to ensure that every datum emitted by a spout is processed.
 
 Fetchers may run indefinitely or return a status code indicating
@@ -239,7 +234,7 @@ Workers are responsible for fulfilling the main design goals of StreamReduce. Wo
 choose
 to kill a task preemptively or, if it does not complete before a timeout, greedily. Additionally,
 workers may choose among a variety of routines for performing computation on a datum.
-Routines are ranked on a [0,1] scale based on the estimated fraction of total work it
+Routines are ranked on a $[0,1]$ scale based on the estimated fraction of total work it
 requires. This rank is a proxy for the accuracy of a routine.
 
 As it runs, a worker maintains an internal metric that estimates the fraction of work
@@ -247,10 +242,10 @@ it has performed over all data it has seen. Workers use this metric when choosin
 computation routine to run for a datum. A worker will choose the lowest ranked routine
 such that its estimated fraction of work is above a configured threshold.
 The total work estimator is used as a proxy for accuracy when a worker updates
-this metric. This metric also takes into account the number of tasks it has killed
+this metric. This metric also takes into account the number of tasks a worker has killed
 for any reason.
 
-Because one of StreamReduce's goals is to process (potentially infinite) streams, workers do
+Because one of StreamReduce's goals is to process potentially infinite streams, workers do
 not
 save their progress to disk and are forgetful; once the master queries a worker for its
 progress and the worker successfully returns it, the worker clears all of its state and
@@ -285,15 +280,15 @@ communicate with the master. The master and other nodes communicate with each ot
 issuing
 HTTP requests to a simple server on each node. I decided to make use of a
 library~\cite{sinatrarb}
-providing the server functionality because there was a low barrier to getting inter-node
+providing the server functionality because there was a low barrier to getting internode
 communication functioning. This design choice presents some problems and will be
 discussed
 further in Section~\ref{sec:discussion}.
 
 Another consequence of the master being the only well-known node is that all data in the
 cluster must flow through it. The master maintains two queues per job for buffering job
-progress from fetchers and workers and periodically pushes this state out to workers and
-collectors, respectively.
+progress from fetchers, the data queue, and workers, the result queue, and periodically
+pushes this state out to workers and collectors, respectively.
 
 \begin{figure}
 \includegraphics[width=\linewidth]{master-control-queue.png}
@@ -393,7 +388,7 @@ The master, spout, fetcher, and collector ran on a mid-2010 Macbook Air laptop w
 RAM\@. I configured
 the cluster to kill tasks on the master node, before they were shipped to workers.
 
-\begin{figure}
+\begin{figure}[t]
 \includegraphics[width=\linewidth]{sr-topology.png}
 \caption{Topology of the test StreamReduce cluster used in the word count case study. Each
 square box represents a single machine. Each rounded box represents a StreamReduce role.}
@@ -405,13 +400,14 @@ whose
 values are the frequency the key occurred in the test corpus.
 
 To run the job, I had to create a spout and find a source of data. For data, I acquired a
-Wikipedia dump of the Featured Articles category. I used Wikipedia's xml
+Wikipedia dump of the Featured Articles category. I used Wikipedia's XML
 exporter~\cite{wikipedia:special:export} on January~9,~2012.
 
 To serve the data, I transformed it into a YAML file containing a hash of
 \begin{center}
 $\texttt{article\_id}\rightarrow\texttt{fulltext}$.
 \end{center}
+
 To store fulltext, I base64 encoded it and
 deflated it using zlib. This requires workers to inflate and decode the fulltext before they
 can process it further. The server reads from this YAML file and returns the resulting hash as
@@ -539,6 +535,10 @@ providing multiple computation routines for the workers to choose from; varying 
 rate; and varying the target work level, which influences the chosen frequency of
 computation
 routines per worker.
+
+Running the perfect computation on one node took 1088 seconds. Compared to the fastest time
+in Table~\ref{table:runtime} using 4 workers, this is over a~700\% speedup. There is much to
+be gained by processing data in parallel.
 
 Table~\ref{table:runtime} shows the effect of varying the task kill rate and work level. The
 row

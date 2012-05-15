@@ -449,14 +449,14 @@ speedup factor associated with varying the task kill rate and target work level.
 \subsection{Precision and Recall}
 StreamReduce transforms some input into a result. The transformation is affected by
 the substitution transformations and descisions to kill tasks that workers make.
-The result of a StreamReduce computation is sensitive to the properties of the input
-and the the properties of the transformation applied.
+The result of a StreamReduce computation may be affected by the properties of the input
+and the properties of the transformation applied.
 
 Every data set has some base level of noise in it due to such things as how the data is
 sampled. StreamReduce introduces another source of noise by discarding data and
-substituting computation algorithms. Certain combinations of inputs and transformations
-may be able to withstand this additional noise while other combinations of inputs and
-transformations may not.
+substituting computation algorithms. For certain combinations of inputs and transformations,
+this additional noise may have very little impact on the result
+while for other combinations, the impact may be larger.
 
 For example, if the distribution of words in the test corpus is close to uniform, the top-k
 words are bunched together and any perturbations in the transformation,
@@ -496,15 +496,19 @@ words, the first word occurs twice as often as the tenth word, and the differenc
 of adjacently ranked words varies from~400--4000. Given that the data set has approximately~16 million
 words and~3500 articles, there are about~4500 words in any given article. Even the most frequently
 occuring word only appears on average~8 times per article.
-%Gaps in the hundreds are stable in the
-%addition or removal of tens of articles.
+
+This significant spacing in the top~100 words makes it likely that the input will produce an
+accurate result when StreamReduce transforms it by discarding data.
 
 Table~\ref{table:top10} and Figure~\ref{fig:precision} show that the Wikipedia
 data set has sufficient spacing in the head of its distribution to withstand the
-data-discarding transformations that StreamReduce employs.
+data-discarding transformations that StreamReduce employs. The top~100 always includes at
+least~86 of the top~100 words and in most cases includes more than~90 of the top~100.
 
-Figure~\ref{fig:precision} shows that even with a task kill rate of~0.8 and a work level of~0.4,
-meaning that the cluster only looks at 8\% of the words in the corpus, the results
+Figure~\ref{fig:precision} shows that even when the input is processed by a transformation that deviates
+from perfect-fidelity, StremReduce still returns meaningful results.
+When transforming the input with a task kill rate of~0.8 and a work level of~0.4,
+meaning that the cluster only looks at~8\% of the words in the corpus, the results
 are at least~80\% accurate. Increasing the work level, which increases the fidelity of
 results emitted by workers, also increases the fidelity of the top~100 results.
 

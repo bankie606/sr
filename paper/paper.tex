@@ -447,21 +447,34 @@ well as the
 speedup factor associated with varying the task kill rate and target work level.
 
 \subsection{Precision and Recall}
-For task killing to be an effective strategy in a top-k computation,
-the distribution of the top-k words must be stable. A stable distribution is one
-that is not altered by adding an additional article to or removing the last
-article from the corpus. Stable distributions are able to sustain the data lost in
-an approach like task killing.
+StreamReduce transforms some input into a result. The transformation is affected by
+the substitution transformations and descisions to kill tasks that workers make.
+The result of a StreamReduce computation is sensitive to the properties of the input
+and the the properties of the transformation applied.
 
 Every data set has some base level of noise in it due to such things as how the data is
 sampled. StreamReduce introduces another source of noise by discarding data and
-substituting computation algorithms. If the noise introduced by StreamReduce is less than
-the data set's sensitivity to noise, the top-k words remain stable.
+substituting computation algorithms. Certain combinations of inputs and transformations
+may be able to withstand this additional noise while other combinations of inputs and
+transformations may not.
 
 For example, if the distribution of words in the test corpus is close to uniform, the top-k
-words are bunched together and any perturbations in the tested data, for example, discarding an
-article that contains instances of the real top-k words, will affect the fidelity of the
-reported top-k.
+words are bunched together and any perturbations in the transformation,
+such as discarding an
+article that contains instances of the real top-k words, may affect the fidelity of the
+reported top-k. However, if there is sufficient separation among words in the input,
+transformations that discard words may still report an accurate top-k.
+
+%If the noise introduced by StreamReduce is less than
+%the data set's sensitivity to noise, the top-k words remain stable.
+
+%For task killing to be an effective strategy in a top-k computation,
+%the distribution of the top-k words must be stable. A stable distribution is one
+%that is not altered by adding an additional article to or removing the last
+%article from the corpus. Stable distributions are able to sustain the data lost in
+%an approach like task killing.
+
+
 
 \begin{figure}
 \includegraphics[width=\linewidth]{long-tail-ranks.png}
@@ -471,19 +484,24 @@ long-tailed distribution. This graph has had stop words~\cite{stopwords} filtere
 \end{figure}
 
 The distribution of words in the Wikipeida data set is
-shown in Figure~\ref{fig:wordDist}. The distribution is long-tailed, which is a first step
-in verifying that this data set has a stable top k.
+shown in Figure~\ref{fig:wordDist}. The distribution is long-tailed, which may indicate
+that this data set can withstand the perturbations introduced by StreamReduce.
 
 \subsubsection{Precision}
 For the results given by StreamReduce's top-k computation to be meaningful,
-it is important for the distribution of the top-k words to be stable, which implies
-that task killing minimally impacts the head of the word distribution.
+it is important for the distribution of the top-k words to be resistant to perturbations,
+which implies that task killing minimally impacts the head of the word distribution.
 Table~\ref{table:top10} shows the top-10 words and their frequencies. Within the true top-10
 words, the first word occurs twice as often as the tenth word, and the difference in frequencies
 of adjacently ranked words varies from~400--4000. Given that the data set has approximately~16 million
 words and~3500 articles, there are about~4500 words in any given article. Even the most frequently
-occuring words only appears on average~8 times per article. Gaps in the hundreds are stable in the
-addition or removal of tens of articles.
+occuring word only appears on average~8 times per article.
+%Gaps in the hundreds are stable in the
+%addition or removal of tens of articles.
+
+Table~\ref{table:top10} and Figure~\ref{fig:precision} show that the Wikipedia
+data set has sufficient spacing in the head of its distribution to withstand the
+data-discarding transformations that StreamReduce employs.
 
 Figure~\ref{fig:precision} shows that even with a task kill rate of~0.8 and a work level of~0.4,
 meaning that the cluster only looks at 8\% of the words in the corpus, the results
@@ -497,12 +515,13 @@ results emitted by workers, also increases the fidelity of the top~100 results.
 \end{figure}
 
 \subsubsection{Recall}
-Recall is sensitive to the stability of the distribution in the tail. Given that the Wikipedia
-data set is long-tailed, the tail of the distribution is very unstable. All of the words
+Recall is sensitive to the tail of the distribution. Given that the Wikipedia
+data set is long-tailed, the distribution's tail is very uniform. All of the words
 in the bottom-10000 have frequencies in the single digits. Because the distribution in the
-tail is so tightly-bunched, recall in the tail of the distribution is most dependent on the
+tail is so tightly-bunched, recall in the tail of the distribution may be impacted heavily
+by the distortions introduced by StreamReduce. Recall tends to be most dependent on the
 work level of the word count job. Less task killing and higher-fidelity worker computations
-benefit recall.
+seem to benefit recall.
 
 Anything less than perfect computation of a datum leaves out words with a frequency of one.
 Figure~\ref{fig:recall} shows how recall improves as the work level increases. Task killing has

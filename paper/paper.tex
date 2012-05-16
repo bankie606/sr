@@ -463,7 +463,7 @@ words are bunched together and any perturbations in the transformation,
 such as discarding an
 article that contains instances of the real top-k words, may affect the fidelity of the
 reported top-k. However, if there is sufficient separation among words in the input,
-transformations that discard words may still report an accurate top-k.
+transformations that discard words should still report an accurate top-k.
 
 %If the noise introduced by StreamReduce is less than
 %the data set's sensitivity to noise, the top-k words remain stable.
@@ -484,8 +484,10 @@ long-tailed distribution. This graph has had stop words~\cite{stopwords} filtere
 \end{figure}
 
 The distribution of words in the Wikipeida data set is
-shown in Figure~\ref{fig:wordDist}. The distribution is long-tailed, which may indicate
-that this data set can withstand the perturbations introduced by StreamReduce.
+shown in Figure~\ref{fig:wordDist}. The distribution is long-tailed, which indicates
+that the result from this data set should be robust in the face of
+the perturbations introduced by StreamReduce.
+%this data set can withstand the perturbations introduced by StreamReduce.
 
 \subsubsection{Precision}
 For the results given by StreamReduce's top-k computation to be meaningful,
@@ -497,8 +499,8 @@ of adjacently ranked words varies from~400--4000. Given that the data set has ap
 words and~3500 articles, there are about~4500 words in any given article. Even the most frequently
 occuring word only appears on average~8 times per article.
 
-This significant spacing in the top~100 words makes it likely that the input will produce an
-accurate result when StreamReduce transforms it by discarding data.
+This significant spacing in the top~100 words makes it likely that
+StreamReduce will produce an accurate result when transforming this particular input.
 
 Table~\ref{table:top10} and Figure~\ref{fig:precision} show that the Wikipedia
 data set has sufficient spacing in the head of its distribution to withstand the
@@ -527,7 +529,7 @@ by the distortions introduced by StreamReduce. Recall tends to be most dependent
 work level of the word count job. Less task killing and higher-fidelity worker computations
 seem to benefit recall.
 
-Anything less than perfect computation of a datum leaves out words with a frequency of one.
+Anything less than perfect computation of a datum may leave out words with a frequency of one.
 Figure~\ref{fig:recall} shows how recall improves as the work level increases. Task killing has
 the same effect on recall as using low fidelity computation routines, so recall decreases as
 the task kill rate does. Task killing dominates the impact of work level on recall as
